@@ -1,0 +1,190 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Abaixo está um markdown detalhado que serve como um guia completo para a construção de um parser para o arquivo de Remessa do **FIDC Banco Paulista (BMP)**, com base no documento "Troca Eletrônica Padrão – Remessa/Cobrança" de Junho/2019.
+
+Este layout é customizado e possui um registro de **444 bytes**.
+
+---
+
+# Regras de Parse: FIDC Banco Paulista (BMP) - Remessa CNAB 444
+
+Este documento detalha o layout e as regras para o processamento de arquivos de **Remessa** para o sistema de Fundos de Investimentos de Direitos Creditórios (FIDC) do Banco Paulista (BMP), operado pela Fromtis.
+
+## Sumário
+1.  [Informações Gerais](#1-informações-gerais)
+2.  [Nomenclatura do Arquivo de Remessa](#2-nomenclatura-do-arquivo-de-remessa)
+3.  [Layout do Arquivo de Remessa (444 bytes)](#3-layout-do-arquivo-de-remessa-444-bytes)
+    *   [Registro Header Label](#31-registro-header-label)
+    *   [Registro de Transação (Detalhe - Tipo 1)](#32-registro-de-transação-detalhe---tipo-1)
+    *   [Registro Trailer](#33-registro-trailer)
+4.  [Detalhamento de Códigos e Campos Principais](#4-detalhamento-de-códigos-e-campos-principais)
+    *   [Identificações de Ocorrência (Campo 23)](#41-identificações-de-ocorrência-campo-23)
+    *   [Espécie de Título (Campo 29)](#42-espécie-de-título-campo-29)
+
+---
+
+## 1. Informações Gerais
+
+### 1.1. Estrutura do Arquivo
+-   **Tamanho do Registro:** Fixo em **444 bytes**.
+-   **Tipo de Arquivo:** Este documento descreve apenas o arquivo de **Remessa**.
+-   **Serviços Permitidos:** Entrada de títulos e envio de instruções.
+-   **Estrutura Lógica:**
+    1.  **Registro Header Label:** O primeiro registro do arquivo.
+    2.  **Registro de Transação (Tipo 1):** Um ou mais registros contendo os dados dos direitos creditórios (títulos).
+    3.  **Registro Trailer:** O último registro do arquivo.
+
+### 1.2. Disposições Gerais sobre Formato de Campos
+-   **Campos Numéricos `9(N)`:**
+    -   Devem ser alinhados à direita.
+    -   Posições não utilizadas à esquerda devem ser preenchidas com zeros.
+-   **Campos Alfanuméricos `X(N)`:**
+    -   Devem ser alinhados à esquerda.
+    -   Posições não utilizadas à direita devem ser preenchidas com espaços em branco.
+    -   Devem ser enviados em **MAIÚSCULAS**, sem acentos ou caracteres especiais (Ç, ?, @, etc.).
+-   **Valores Monetários `9(N)V9(M)`:**
+    -   Utilizam 2 casas decimais.
+    -   O valor é representado como um inteiro, sem ponto ou vírgula. Exemplo: R$ 2.470,56 em um campo `9(13)V9(2)` seria `0000002470560`. (Note: os layouts neste manual usam um tamanho específico, como `9(11)V9(2)`).
+
+---
+
+## 2. Nomenclatura do Arquivo de Remessa
+
+O nome do arquivo de remessa deve seguir a formatação: `CBDDMMxx.REM` ou `CBDDMMxx.TXT`.
+
+-   `CB`: Caracteres fixos.
+-   `DD`: Dia de geração do arquivo (01-31).
+-   `MM`: Mês de geração do arquivo (01-12).
+-   `xx`: Variáveis alfanuméricas de duas posições para controle (Ex: 01, AE, E1).
+-   `.REM` ou `.TXT`: Extensão do arquivo.
+
+**Exemplos:** `CB230501.REM`, `CB2305AE.TXT`.
+
+---
+
+## 3. Layout do Arquivo de Remessa (444 bytes)
+
+### 3.1. Registro Header Label
+
+| Posição (De-Até) | Tam. | Campo | Tipo | Obrig. | Conteúdo / Observações |
+| :--------------- | :--- | :--------------------------------- | :--- | :----- | :------------------------------------------------------------------------------------------------ |
+| 001-001 | 1 | Identificação do Registro | 9(1) | Sim | `0` |
+| 002-002 | 1 | Identificação do Arquivo Remessa | 9(1) | Sim | `1` |
+| 003-009 | 7 | Literal Remessa | X(7) | Sim | `REMESSA` |
+| 010-011 | 2 | Código de Serviço | 9(2) | Sim | `01` |
+| 012-026 | 15 | Literal Serviço | X(15) | Sim | `COBRANCA` |
+| 027-046 | 20 | Código do Originador (Consultoria) | 9(20) | Sim | Será informado pelo Banco Paulista durante o cadastramento na Custódia. |
+| 047-076 | 30 | Nome do Originador (Consultoria) | X(30) | Sim | Razão Social do Originador. |
+| 077-079 | 3 | Número do Banco Paulista | 9(3) | Sim | `611` |
+| 080-094 | 15 | Nome do Banco | X(15) | Sim | `PAULISTA S.A.` |
+| 095-100 | 6 | Data da Gravação do Arquivo | 9(6) | Sim | `DDMMAA` (Data da operação). |
+| 101-108 | 8 | Branco | X(8) | Sim | Brancos. |
+| 109-110 | 2 | Identificação do Sistema | X(2) | Sim | `MX` |
+| 111-117 | 7 | N° Seqüencial do Arquivo | 9(7) | Sim | Número sequencial do arquivo. |
+| 118-438 | 321 | Branco | X(321) | Sim | Brancos. |
+| 439-444 | 6 | N° Seqüencial do Registro | 9(6) | Sim | `000001` |
+
+### 3.2. Registro de Transação (Detalhe - Tipo 1)
+
+| Posição (De-Até) | Tam. | Campo | Tipo | Obrig. | Conteúdo / Observações |
+| :--------------- | :--- | :--------------------------------- | :------- | :----- | :-------------------------------------------------------------------------------------------------------------------------- |
+| 001-001 | 1 | Identificação do Registro | 9(1) | Sim | `1` |
+| 002-020 | 19 | Débito Automático C/C | X(19) | Não | Branco. |
+| 021-022 | 2 | Coobrigação | 9(2) | Sim | `01` = Com Coobrigação, `02` = Sem Coobrigação. |
+| 023-024 | 2 | Característica Especial | 9(2) | Não | Preencher de acordo com o Anexo 8 do layout SRC3040 do Bacen. |
+| 025-028 | 4 | Modalidade da Operação | 9(4) | Não | Preencher de acordo com o Anexo 3 do layout SRC3040 do Bacen. |
+| 029-030 | 2 | Natureza da Operação | 9(2) | Não | Preencher de acordo com o Anexo 2 do layout SRC3040 do Bacen. |
+| 031-034 | 4 | Origem do recurso | 9(4) | Não | Preencher de acordo com o Anexo 4 do layout SRC3040 do Bacen. |
+| 035-036 | 2 | Classe Risco da Operação | X(2) | Não | Preencher de acordo com o Anexo 17 do layout SRC3040 do BACEN (da esquerda para direita). |
+| 037-037 | 1 | Zeros | 9(1) | Não | Zeros. |
+| 038-062 | 25 | N° de Controle do Participante | X(25) | Sim | Número de identificação do título na Consultoria. Deve ser o mesmo informado ao Banco Cobrador. |
+| 063-065 | 3 | Numero do Banco | 9(3) | Sim | Se `Espécie` for cheque, campo obrigatório. Para outras, preencher com `000`. |
+| 066-070 | 5 | Zeros | 9(5) | Sim | Zeros. |
+| 071-081 | 11 | Identificação do Título no Banco | 9(11) | Não | Branco. |
+| 082-082 | 1 | Dígito do Nosso Número | X(1) | Não | Branco. |
+| 083-092 | 10 | Valor pago | 9(8)V9(2) | Não | Valor pago na liquidação/baixa. **Obrigatório na Liquidação**. |
+| 093-093 | 1 | Condição para Emissão da Papeleta | 9(1) | Não | Branco. |
+| 094-094 | 1 | Ident. se emite papeleta para Débito | X(1) | Não | Branco. |
+| 095-100 | 6 | Data da Liquidação | 9(6) | Sim | `DDMMAA`. Apenas para liquidação do título. |
+| 101-104 | 4 | Identificação da Operação do Banco | X(4) | Não | Branco. |
+| 105-105 | 1 | Indicador Rateio Crédito | X(1) | Não | Branco. |
+| 106-106 | 1 | Endereçamento para Aviso do Débito | 9(1) | Não | Branco. |
+| 107-108 | 2 | Branco | X(2) | Não | Branco. |
+| 109-110 | 2 | Identificação Ocorrência | 9(2) | Sim | **Ver seção 4.1 deste documento.** |
+| 111-120 | 10 | N° do Documento | X(10) | Sim | Documento. |
+| 121-126 | 6 | Data do Vencimento do Título | 9(6) | Sim | `DDMMAA`. |
+| 127-139 | 13 | Valor do Título (Face) | 9(11)V9(2) | Sim | Valor do Título (sem ponto e sem vírgula). |
+| 140-142 | 3 | Banco Encarregado da Cobrança | 9(3) | Não | Nº do Banco na Câmara de Compensação ou `000`. |
+| 143-147 | 5 | Agência Depositária | 9(5) | Não | Código da Agência Depositária ou `00000`. |
+| 148-149 | 2 | Espécie de Título | 9(2) | Sim | **Ver seção 4.2 deste documento.** |
+| 150-150 | 1 | Identificação | X(1) | Não | Branco. |
+| 151-156 | 6 | Data da emissão do Título | 9(6) | Sim | `DDMMAA`. |
+| 157-158 | 2 | 1ª instrução | 9(2) | Não | `00`. |
+| 159-159 | 1 | 2ª instrução | 9(1) | Não | `0`. |
+| 160-161 | 2 | Tipo de Pessoa do Cedente | X(2) | Sim | `01` = Pessoa Física; `02` = Pessoa Jurídica. |
+| 162-173 | 12 | Zeros | X(12) | Não | Zeros. |
+| 174-192 | 19 | Número do Termo de Cessão | X(19) | Sim | Número do termo enviado pela consultoria (campos alfanuméricos). |
+| 193-205 | 13 | Valor Presente da Parcela | 9(11)V9(2) | Sim | Valor da parcela na data em que foi cedida. |
+| 206-218 | 13 | Valor do Abatimento | 9(11)V9(2) | Não | Valor do abatimento a ser concedido na instrução. |
+| 219-220 | 2 | Identificação do tipo de Inscrição | 9(2) | Sim | `01`=CPF, `02`=CNPJ do Sacado. |
+| 221-234 | 14 | N° Inscrição do Sacado | 9(14) | Sim | CNPJ/CPF do Sacado. **Atenção:** Se CNPJ, preencher da direita para a esquerda. |
+| 235-274 | 40 | Nome do Sacado | X(40) | Sim | Nome do Sacado. |
+| 275-314 | 40 | Endereço Completo | X(40) | Sim | Endereço do Sacado. |
+| 315-323 | 9 | Número da Nota Fiscal da Duplicata | X(9) | Sim | Número da Nota Fiscal da duplicata. |
+| 324-326 | 3 | Numero da Série da Nota Fiscal | X(3) | Não | Número da Série da Nota Fiscal da duplicata. |
+| 327-334 | 8 | CEP | 9(8) | Sim | CEP do Sacado. |
+| 335-394 | 60 | Cedente | X(60) | Sim | **Campo composto:** pos 335-380 (Nome do Cedente), pos 381-394 (CNPJ do Cedente). |
+| 395-438 | 44 | Chave da Nota | X(44) | Sim | Chave da Nota Fiscal Eletrônica. |
+| 439-444 | 6 | N° Seqüencial do Registro | 9(6) | Sim | Número sequencial do registro. |
+
+### 3.3. Registro Trailer
+| Posição (De-Até) | Tam. | Campo | Tipo | Obrig. | Conteúdo / Observações |
+| :--------------- | :--- | :-------------------------- | :------- | :----- | :---------------------------------- |
+| 001-001 | 1 | Identificação Registro | 9(1) | Sim | `9` |
+| 002-438 | 437 | Branco | X(437) | Sim | Branco. |
+| 439-444 | 6 | Número Seqüencial de Registro | 9(6) | Sim | Nº Sequencial do Último Registro (este próprio trailer). |
+
+---
+
+## 4. Detalhamento de Códigos e Campos Principais
+
+### 4.1. Identificações de Ocorrência (Campo 23)
+Define a finalidade do registro de transação.
+
+-   `01`: Remessa (Entrada de Título).
+-   `04`: Abatimentos (com justificativa).
+-   `06`: Alteração de vencimento (apenas para conciliação, não altera o vencimento original).
+-   `11`: Aquisição de contratos futuros.
+-   `12`: Aquisição de baixa de contratos futuros.
+-   `14`: Pagamento Parcial.
+-   `22`: Baixa de Confissão de Dívida.
+-   `39`: Aquisições (Sem TED).
+-   `40`: Aquisições Contrato Futuro (Sem TED).
+-   `41`: Entrada por Recompra (Sem TED) contra partida obrigatória.
+-   `64`: Entradas por Assunção de Dívida.
+-   `68`: Baixa de Cheque.
+-   `70`: Baixa parcial de Contrato Futuro.
+-   `72`: Recompra parcial sem adiantamento.
+-   `74`: Baixa por Recompra (com liquidação para o cedente).
+-   `75`: Baixa por Depósito Cedente.
+-   `77`: Baixa por Depósito Sacado.
+-   `84`: Entrada por Recompra (troca de títulos).
+
+### 4.2. Espécie de Título (Campo 29)
+-   `01`: Duplicata
+-   `02`: Nota Promissória
+-   `06`: Nota Promissória Física
+-   `07`: Cartolas Bancárias
+-   `14`: Duplicata de Serviço Física
+-   `51`: Cheque
+-   `60`: Contrato
+-   `61`: Contrato Físico
+-   `62`: Confissões de Dívida
+-   `64`: Assunção de Dívida
+-   `67`: Operações Cartão de Crédito Digital
+-   `70`: CCB Pré Digital
+-   `71`: CCB Pré Balcão
+-   `72`: CCB Pré Cetip

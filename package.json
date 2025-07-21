@@ -1,0 +1,51 @@
+{
+  "name": "@eosloan/cnab-tools",
+  "version": "1.0.0",
+  "description": "",
+  "exports": {
+    "import": {
+      "./bmp-444": {
+        "node": "./dist/bmp-444.mjs"
+      },
+      "./itau-400": {
+        "node": "./dist/itau-400.mjs"
+      }
+    },
+    "require": {
+      "./bmp-444": {
+        "node": "./dist/bmp-444.js"
+      },
+      "./itau-400": {
+        "node": "./dist/itau-400.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eosloan/cnab-tools.git"
+  },
+  "author": "Vinicius Alves <alvessvin@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eosloan/cnab-tools/issues"
+  },
+  "homepage": "https://github.com/eosloan/cnab-tools#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^24.0.15",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
+    "globals": "^16.3.0",
+    "prettier": "3.6.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,1190 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Regras de Parse: Itaú Cobrança Bancária CNAB 400
+
+Este documento detalha o layout e as regras para o processamento de arquivos de Remessa e Retorno no padrão CNAB 400 para o serviço de Cobrança Bancária do Itaú.
+
+## Sumário
+1.  Informações Gerais
+2.  Layout do Arquivo de Remessa
+3.  Layout do Arquivo de Retorno
+4.  Condições Personalizadas (Indicadores)
+5.  Anexos e Cálculos
+    *   Anexo A: Boleto, Código de Barras e Linha Digitável (IPTE)
+    *   Anexo 1: Modelo de Ficha de Compensação
+    *   Anexo 2: Cálculo do DAC do Código de Barras (Módulo 11)
+    *   Anexo 3: Cálculo do DAC da Representação Numérica (Módulo 10)
+    *   Anexo 4: Cálculo do DAC do "Nosso Número"
+    *   Anexo 5: Carteira 198 (Nosso Número com 15 posições)
+    *   Anexo 6: Cálculo do Fator de Vencimento
+    *   Anexo 7: Boleto de Proposta
+6.  Notas Gerais
+
+---
+
+## 1. Informações Gerais
+
+### 1.1. Estrutura do Arquivo
+-   O arquivo é do tipo texto, com um registro por linha.
+-   Cada registro (linha) tem um tamanho fixo de **400 bytes**.
+-   A estrutura geral é:
+    1.  **Registro Header de Arquivo (Tipo 0)**: O primeiro registro do arquivo.
+    2.  **Registros de Detalhe (Tipo 1, 2, 4, 5)**: Um ou mais registros contendo os dados dos títulos.
+    3.  **Registro Trailer de Arquivo (Tipo 9)**: O último registro do arquivo, contendo totais.
+
+### 1.2. Formato dos Campos (Picture)
+-   **Alfanumérico `X(N)`**: Alinhado à esquerda e preenchido com espaços em branco à direita. Caracteres devem ser maiúsculos e sem acentuação ou caracteres especiais (Ç, ?, etc.).
+-   **Numérico `9(N)`**: Alinhado à direita e preenchido com zeros à esquerda. Campos não utilizados devem ser preenchidos com zeros.
+-   **Vírgula Assumida `9(N)V9(M)`**: Indica a posição implícita da vírgula. Ex: `9(5)V9(2)` para o valor `876,54` deve ser preenchido como `0087654`.
+
+---
+
+## 2. Layout do Arquivo de Remessa
+
+### 2.1. Registro Header de Arquivo (Tipo 0)
+O primeiro registro do arquivo.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo Fixo / Observações |
+| :--------------- | :--- | :--------------------- | :-------- | :------------------------------------------------ |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `0` |
+| 002-002 | 1 | OPERAÇÃO | 9(01) | `1` (Remessa) |
+| 003-009 | 7 | LITERAL DE REMESSA | X(07) | `REMESSA` |
+| 010-011 | 2 | CÓDIGO DO SERVIÇO | 9(02) | `01` |
+| 012-026 | 15 | LITERAL DE SERVIÇO | X(15) | `COBRANCA` |
+| 027-030 | 4 | AGÊNCIA | 9(04) | Agência do Beneficiário (sem o dígito verificador) |
+| 031-032 | 2 | ZEROS | 9(02) | `00` |
+| 033-037 | 5 | CONTA | 9(05) | Conta do Beneficiário (sem o dígito verificador) |
+| 038-038 | 1 | DAC | 9(01) | Dígito Verificador da Agência/Conta |
+| 039-046 | 8 | BRANCOS | X(08) | Preencher com espaços |
+| 047-076 | 30 | NOME DA EMPRESA | X(30) | Nome do Beneficiário |
+| 077-079 | 3 | CÓDIGO DO BANCO | 9(03) | `341` |
+| 080-094 | 15 | NOME DO BANCO | X(15) | `BANCO ITAU SA` |
+| 095-100 | 6 | DATA DE GERAÇÃO | 9(06) | Formato `DDMMAA` |
+| 101-394 | 294 | BRANCOS | X(294) | Preencher com espaços |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | `000001` |
+
+### 2.2. Registro Detalhe de Transação (Tipo 1 - Obrigatório)
+Para cada título enviado, deve haver um registro tipo 1.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações (Notas do Manual) |
+| :--------------- | :--- | :------------------------- | :------------ | :------------------------------------------------------------------------------------------------ |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `1` |
+| 002-003 | 2 | CÓDIGO DE INSCRIÇÃO | 9(02) | **(Nota 1)** `01`=CPF, `02`=CNPJ do Beneficiário |
+| 004-017 | 14 | NÚMERO DE INSCRIÇÃO | 9(14) | CPF/CNPJ do Beneficiário |
+| 018-021 | 4 | AGÊNCIA | 9(04) | Agência do Beneficiário |
+| 022-023 | 2 | ZEROS | 9(02) | `00` |
+| 024-028 | 5 | CONTA | 9(05) | Conta do Beneficiário |
+| 029-029 | 1 | DAC | 9(01) | Dígito Verificador Ag/Conta |
+| 030-033 | 4 | BRANCOS | X(04) | Espaços |
+| 034-037 | 4 | INSTRUÇÃO/ALEGAÇÃO | 9(04) | **(Nota 27)** Usado para cancelar instrução. Vide Ocorrência 35 e 38 na Tabela de Remessa. |
+| 038-062 | 25 | USO DA EMPRESA | X(25) | **(Nota 2)** Campo de uso livre pelo cliente (Seu Número). Retorna no arquivo de retorno. |
+| 063-070 | 8 | NOSSO NÚMERO | 9(08) | **(Nota 3)** Número do boleto atribuído pelo banco (escritural) ou pelo cliente (direta). |
+| 071-083 | 13 | QTDE DE MOEDA | 9(08)V9(5) | **(Nota 4)** Preencher com zeros se a moeda for Real (BRL). |
+| 084-086 | 3 | N° DA CARTEIRA | 9(03) | **(Nota 5)** Número da carteira de cobrança. |
+| 087-107 | 21 | USO DO BANCO | X(21) | Campo de uso interno do Itaú. Preencher com espaços. |
+| 108-108 | 1 | CARTEIRA | X(01) | **(Nota 5)** Código da carteira. |
+| 109-110 | 2 | CÓD. DE OCORRÊNCIA | 9(02) | **(Nota 6)** `01`=Remessa, `02`=Pedido de Baixa, `04`=Concessão Abatimento, etc. Ver Tabela de Ocorrências Remessa. |
+| 111-120 | 10 | N° DO DOCUMENTO | X(10) | **(Nota 18)** Número do documento que originou o título (NF, Duplicata, etc.). |
+| 121-126 | 6 | VENCIMENTO | 9(06) | `DDMMAA`. **(Nota 7)** Não pode ser "à vista" ou "999999". |
+| 127-139 | 13 | VALOR DO TÍTULO | 9(11)V9(2) | **(Nota 8)** Valor nominal do boleto. |
+| 140-142 | 3 | CÓDIGO DO BANCO | 9(03) | `341` |
+| 143-147 | 5 | AGÊNCIA COBRADORA | 9(05) | **(Nota 9)** Preencher com zeros na remessa. O Itaú define a agência. |
+| 148-149 | 2 | ESPÉCIE | X(02) | **(Nota 10)** `01`=DM, `02`=NP, `18`=BDP (Boleto de Proposta), etc. |
+| 150-150 | 1 | ACEITE | X(01) | `A`=Aceite, `N`=Não Aceite |
+| 151-156 | 6 | DATA DE EMISSÃO | 9(06) | `DDMMAA`. **(Nota 31)** Data de emissão da duplicata/NF. |
+| 157-158 | 2 | INSTRUÇÃO 1 | X(02) | **(Nota 11)** Vide Tabela de Instruções de Cobrança. |
+| 159-160 | 2 | INSTRUÇÃO 2 | X(02) | **(Nota 11)** Vide Tabela de Instruções de Cobrança. |
+| 161-173 | 13 | JUROS DE 1 DIA | 9(11)V9(2) | **(Nota 12)** Valor de juros de mora por dia de atraso. |
+| 174-179 | 6 | DESCONTO ATÉ | 9(06) | `DDMMAA`. Data limite para o desconto. |
+| 180-192 | 13 | VALOR DO DESCONTO | 9(11)V9(2) | **(Nota 13)** Valor do desconto a ser concedido. |
+| 193-205 | 13 | VALOR DO I.O.F. | 9(11)V9(2) | **(Nota 14)** Exclusivo para seguradoras. |
+| 206-218 | 13 | ABATIMENTO | 9(11)V9(2) | **(Nota 13)** Valor do abatimento a ser concedido. |
+| 219-220 | 2 | CÓDIGO DE INSCRIÇÃO | 9(02) | `01`=CPF, `02`=CNPJ do Pagador. |
+| 221-234 | 14 | NÚMERO DE INSCRIÇÃO | 9(14) | CPF/CNPJ do Pagador. |
+| 235-264 | 30 | NOME | X(30) | **(Nota 15)** Nome do Pagador. |
+| 265-274 | 10 | BRANCOS | X(10) | Espaços. |
+| 275-314 | 40 | LOGRADOURO | X(40) | Endereço do Pagador. |
+| 315-326 | 12 | BAIRRO | X(12) | Bairro do Pagador. |
+| 327-334 | 8 | CEP | 9(08) | CEP do Pagador. |
+| 335-349 | 15 | CIDADE | X(15) | Cidade do Pagador. |
+| 350-351 | 2 | ESTADO | X(02) | UF do Pagador. |
+| 352-381 | 30 | SACADOR/AVALISTA | X(30) | **(Nota 16)** Nome do sacador/avalista ou usado para 2º/3º desconto ou mensagens. |
+| 382-385 | 4 | BRANCOS | X(04) | Espaços. |
+| 386-391 | 6 | DATA DE MORA | 9(06) | `DDMMAA` **(Nota 11-F)** Data de início da cobrança de juros. |
+| 392-393 | 2 | PRAZO | 9(02) | **(Nota 11-A)** Quantidade de dias para protesto ou negativação após vencimento. |
+| 394-394 | 1 | BRANCOS | X(01) | Espaços. |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | Número sequencial do registro no arquivo. |
+
+### 2.3. Registro Detalhe (Tipo 2 - Opcional, Multa)
+Enviado apenas quando se deseja registrar/alterar multa. Deve vir após o Registro Tipo 1 correspondente.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações (Nota 35) |
+| :--------------- | :--- | :----------------- | :------- | :------------------------------------------------------------------------------------ |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `2` |
+| 002-002 | 1 | COD. MULTA | X(01) | `1`=Valor em Reais (Fixo), `2`=Valor em Percentual. `0`=Não registra multa. |
+| 003-010 | 8 | DATA DA MULTA | 9(08) | `DDMMAAAA`. Data a partir da qual a multa é aplicável. |
+| 011-023 | 13 | MULTA | 9(11)V9(2) | Valor ou percentual da multa a ser aplicada. |
+| 024-394 | 371 | BRANCOS | X(371) | Espaços. |
+| 395-400 | 6 | NUMERO SEQUENCIAL | 9(06) | Número sequencial do registro no arquivo. |
+
+### 2.4. Registro Detalhe (Tipo 4 - Opcional, Rateio de Crédito)
+Usado para títulos com rateio de crédito. Podem ser utilizados até 3 registros Tipo 4 por título, para um máximo de 30 contas.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações (Nota 32) |
+| :--------------- | :--- | :----------------- | :------------ | :--------------------------------------------------------------------------------- |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `4` |
+| ... | ... | ... | ... | Segue a estrutura das páginas 10 e 11 do manual para até 14 contas de rateio. |
+| 394-394 | 1 | TIPO DE VALOR | 9(01) | `1` ou `2` para Valor Nominal (Percentual/Valor), `3` ou `4` para Valor Líquido. |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | Número sequencial do registro no arquivo. |
+
+### 2.5. Registro Detalhe (Tipo 5 - Opcional, Cobrança E-mail e Sacador/Avalista)
+Enviado para entrega de boleto por e-mail ou para informar dados completos do sacador/avalista.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações |
+| :--------------- | :--- | :------------------------- | :------- | :--------------------------------------------------------------------------------- |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `5` |
+| 002-121 | 120 | ENDEREÇO DE E-MAIL | X(120) | **(Nota 29)** E-mail do pagador. |
+| 122-123 | 2 | CÓDIGO DE INSCRIÇÃO | 9(02) | **(Nota 30)** `01`=CPF, `02`=CNPJ do Sacador/Avalista. |
+| 124-137 | 14 | NÚMERO DE INSCRIÇÃO | 9(14) | **(Nota 30)** Número do CPF/CNPJ do Sacador/Avalista. |
+| 138-177 | 40 | LOGRADOURO | X(40) | **(Nota 30)** Endereço do Sacador/Avalista. |
+| ... | ... | ... | ... | Demais campos de endereço (Bairro, CEP, Cidade, Estado). |
+| 215-394 | 180 | BRANCOS | X(180) | Espaços. |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | Número sequencial do registro no arquivo. |
+
+### 2.6. Registro Trailer de Arquivo (Tipo 9)
+O último registro do arquivo.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações |
+| :--------------- | :--- | :------------------- | :------- | :--------------------------------------- |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `9` |
+| 002-394 | 393 | BRANCOS | X(393) | Espaços |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | Número total de registros no arquivo (incluindo header e trailer). |
+
+---
+
+## 3. Layout do Arquivo de Retorno
+
+### 3.1. Registro Header de Arquivo (Tipo 0)
+Primeiro registro do arquivo de retorno.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações |
+| :--------------- | :--- | :------------------- | :------- | :--------------------------------------- |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `0` |
+| 002-002 | 1 | CÓDIGO DE RETORNO | 9(01) | `2` (Retorno) |
+| 003-009 | 7 | LITERAL DE RETORNO | X(07) | `RETORNO` |
+| ... | ... | ... | ... | Segue a estrutura da página 13 do manual. |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | `000001` |
+
+### 3.2. Registro Detalhe de Transação (Tipo 1)
+Contém as informações de movimentação do título (liquidação, baixa, rejeição, etc.).
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações (Notas do Manual) |
+| :--------------- | :--- | :----------------------------- | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `1` |
+| ... | ... | ... | ... | ... |
+| 108-108 | 1 | CARTEIRA | X(01) | Código da Carteira. |
+| 109-110 | 2 | CÓD. DE OCORRÊNCIA | 9(02) | **(Nota 17)** Causa do retorno. `02`=Entrada Confirmada, `03`=Entrada Rejeitada, `06`=Liquidação, `09`=Baixa, etc. |
+| 111-116 | 6 | DATA DE OCORRÊNCIA | 9(06) | `DDMMAA` |
+| ... | ... | ... | ... | ... |
+| 153-165 | 13 | VALOR DO TÍTULO | 9(11)V9(2) | Valor nominal do título. |
+| ... | ... | ... | ... | ... |
+| 254-266 | 13 | VALOR PRINCIPAL | 9(11)V9(2) | Valor efetivamente pago ou creditado. |
+| 267-279 | 13 | JUROS DE MORA/MULTA | 9(11)V9(2) | Valor de juros e multa pagos. |
+| ... | ... | ... | ... | ... |
+| 293-293 | 1 | BOLETO DDA | X(01) | **(Nota 34)** `1`=Boleto DDA, `0`=Não é DDA. |
+| ... | ... | ... | ... | ... |
+| 378-385 | 8 | ERROS / MENSAGEM INFORMATIVA | X(08) | **(Nota 20)** Contém até 4 códigos de erro para rejeições (Ocorrência 03, 15, 16, 17, 18). Vide Tabelas de Erros. |
+| 393-394 | 2 | CÓD. DE LIQUIDAÇÃO | X(02) | **(Nota 28)** Meio de liquidação. `AA`=Caixa Eletrônico, `BC`=Bancos Correspondentes, `CP`=Agência Itaú, etc. |
+| 395-400 | 6 | NÚMERO SEQUENCIAL | 9(06) | Número sequencial do registro no arquivo. |
+
+### 3.3. Registro Trailer de Arquivo (Tipo 9)
+Último registro do arquivo de retorno, com totais.
+
+| Posição (De-Até) | Tam. | Campo | Picture | Conteúdo / Observações (Nota 21 e 22) |
+| :--------------- | :--- | :----------------------------- | :------------- | :----------------------------------------------------------------------------------------- |
+| 001-001 | 1 | TIPO DE REGISTRO | 9(01) | `9` |
+| 002-002 | 1 | CÓDIGO DE RETORNO | 9(01) | `2` |
+| 003-004 | 2 | CÓDIGO DO SERVIÇO | 9(02) | `01` |
+| 005-007 | 3 | CÓDIGO DO BANCO | 9(03) | `341` |
+| 008-017 | 10 | BRANCOS | X(10) | Espaços |
+| 018-025 | 8 | QTDE. DE TÍTULOS EM COBR. SIMPLES | 9(08) | Quantidade de títulos em Cobrança Simples. |
+| 026-039 | 14 | VALOR TOTAL EM COBR. SIMPLES | 9(12)V9(2) | Valor total dos títulos em Cobrança Simples. |
+| 040-047 | 8 | AVISO BANCÁRIO | X(08) | Número do aviso de lançamento. |
+| ... | ... | ... | ... | Outros campos de totais para Cobrança Vinculada, Direta, etc. |
+| 213-220 | 8 | QTDE DE DETALHES | 9(08) | Quantidade de registros de detalhe (Tipo 1) no arquivo. |
+| 221-234 | 14 | VLR TOTAL INFORMADO | 9(12)V9(2) | Valor total dos registros de detalhe. |
+| ... | ... | ... | ... | ... |
+| 395-400 | 6 | NÚMERO SEQÜENCIAL | 9(06) | Número total de registros no arquivo. |
+
+---
+
+## 4. Condições Personalizadas (Indicadores)
+
+São configurações no nível da conta que alteram o comportamento do processamento. O valor default é marcado com `(*)`.
+-   **12.5 - CONCESSÃO DE ABATIMENTO**:
+    -   `(*) 0` - Altera o valor do título.
+    -   `1` - Apenas emite aviso ao pagador.
+-   **19.0 - DESCONTO NO ARQUIVO REMESSA**:
+    -   `(*) 0` - Aceita somente um desconto.
+    -   `1` - Aceita mais de um desconto (2º e 3º no campo Sacador/Avalista).
+-   **36.4 - SEPARAÇÃO DE DESCONTO E ABATIMENTO**:
+    -   `(*) 0` - Não separa.
+    -   `1` - Separa Descontos/Abatimento.
+    -   `2` - Separa Juros/Correção Monetária.
+    -   `3` - Separa Desconto/Abatimento e Juros/Correção Monetária.
+-   **38.0 - RETORNO DE REGISTROS REJEITADOS**:
+    -   `0` - Não retorna rejeitados.
+    -   `1` - Retorna somente rejeições de entrada.
+    -   `(*) 2` - Retorna todas as rejeições.
+
+---
+
+## 5. Anexos e Cálculos
+
+### Anexo A: Boleto, Código de Barras e Linha Digitável (IPTE)
+
+#### Estrutura do Código de Barras (44 posições)
+O código de barras é do tipo **2 de 5 Intercalado**.
+
+| Posição | Tam. | Conteúdo | Exemplo de Preenchimento (Anexo 5) |
+| :------ | :--- | :--------------------------------------------- | :--------------------------------- |
+| 1-3 | 3 | Código do Banco (`341`) | `341` |
+| 4-4 | 1 | Código da Moeda (`9` para Real) | `9` |
+| 5-5 | 1 | **DAC do Código de Barras (Módulo 11)** | `6` |
+| 6-9 | 4 | Fator de Vencimento | `1667` |
+| 10-19 | 10 | Valor do Título (com 2 casas decimais) | `0000012345` (para R$ 123,45) |
+| 20-44 | 25 | **Campo Livre** (definido pelo banco) | |
+| 20-22 | 3 | Carteira | `110` |
+| 23-30 | 8 | Nosso Número | `12345678` |
+| 31-31 | 1 | DAC [Ag/Conta/Carteira/Nosso Número] (Módulo 10) | `8` |
+| 32-35 | 4 | Agência Beneficiário | `0057` |
+| 36-40 | 5 | Conta Beneficiário | `12345` |
+| 41-41 | 1 | DAC [Ag/Conta] (Módulo 10) | `7` |
+| 42-44 | 3 | Zeros | `000` |
+
+#### Estrutura da Linha Digitável (IPTE - 47 posições numéricas)
+`AAABC.CCDDX DDDDD.DEFFFY FGGGG.GGHHHZ K UUUUVVVVVVVVVV`
+
+-   **Campo 1 (AAABC.CCDDX)**: `34191.10121`
+    -   `AAA`: Cód. Banco (`341`)
+    -   `B`: Cód. Moeda (`9`)
+    -   `C.CCDD`: 5 primeiras posições do Campo Livre (`11012`)
+    -   `X`: DAC do Campo 1 (Módulo 10)
+-   **Campo 2 (DDDDD.DEFFFY)**: `34567.880058`
+    -   `DDDDD.DEFFF`: 10 posições seguintes do Campo Livre (`3456788005`)
+    -   `Y`: DAC do Campo 2 (Módulo 10)
+-   **Campo 3 (FGGGG.GGHHHZ)**: `71234.570001`
+    -   `FGGGG.GGHHH`: 10 últimas posições do Campo Livre (`7123457000`)
+    -   `Z`: DAC do Campo 3 (Módulo 10)
+-   **Campo 4 (K)**: `6`
+    -   `K`: DAC geral do Código de Barras (Módulo 11)
+-   **Campo 5 (UUUUVVVVVVVVVV)**: `16670000012345`
+    -   `UUUU`: Fator de Vencimento
+    -   `VVVVVVVVVV`: Valor do Título
+
+### Anexo 1: Modelo de Ficha de Compensação
+Descreve os campos visuais do boleto impresso, como `Local de Pagamento`, `Data de Vencimento`, `Nome do Beneficiário`, `Nosso Número`, `Valor do Documento`, etc. A implementação deve garantir que os dados do arquivo CNAB sejam impressos nos campos corretos do boleto, seguindo o layout visual da página 52 do manual.
+
+### Anexo 2: Cálculo do DAC do Código de Barras (Módulo 11)
+Para calcular o 5º dígito do código de barras:
+1.  Pegue os 43 dígitos do código de barras (sem a 5ª posição).
+2.  Começando da direita para a esquerda, multiplique cada dígito pela sequência `2, 3, 4, 5, 6, 7, 8, 9, 2, 3, ...`.
+3.  Some todos os resultados das multiplicações.
+4.  Divida a soma por 11 e obtenha o **resto** da divisão.
+5.  Calcule o DAC: `DAC = 11 - resto`.
+6.  **Exceções**: Se o resultado for 0, 1, 10 ou 11, o DAC será `1`.
+
+### Anexo 3: Cálculo do DAC da Representação Numérica (Módulo 10)
+Para calcular os dígitos verificadores dos campos 1, 2 e 3 da Linha Digitável:
+1.  Pegue os dígitos do campo (ex: Campo 1, `341911012`).
+2.  Começando da direita para a esquerda, multiplique cada dígito pela sequência `2, 1, 2, 1, ...`.
+3.  Se o resultado de uma multiplicação for maior que 9 (ex: `9 * 2 = 18`), some os algarismos do resultado (`1 + 8 = 9`).
+4.  Some todos os resultados obtidos.
+5.  Divida a soma por 10 e obtenha o **resto**.
+6.  Calcule o DAC: `DAC = 10 - resto`.
+7.  **Exceção**: Se o resultado for 10, o DAC será `0`.
+
+### Anexo 4: Cálculo do DAC do "Nosso Número"
+Usa o **Módulo 10**, similar ao Anexo 3.
+-   **Regra Geral**: A base para o cálculo é a concatenação `Agência` + `Conta` + `Carteira` + `Nosso Número`.
+-   **Exceção (Carteiras 126, 131, 146, 150, 168)**: A base é apenas `Carteira` + `Nosso Número`.
+
+### Anexo 5: Carteira 198 (Nosso Número com 15 posições)
+Para carteiras especiais (107, 122, 142, 143, 196) que usam 15 posições para identificação do título, a estrutura do Campo Livre do código de barras é diferente.
+-   **Campo Livre (25 posições)**:
+    -   `20-22` (3): Carteira
+    -   `23-30` (8): Nosso Número
+    -   `31-37` (7): Seu Número (Nº do Documento)
+    -   `38-42` (5): Código do Cliente (fornecido pelo banco)
+    -   `43-43` (1): DAC Módulo 10 dos campos (20 a 42)
+    -   `44-44` (1): Zero
+
+### Anexo 6: Cálculo do Fator de Vencimento
+O Fator de Vencimento é o número de dias decorridos entre a data-base (`07/10/1997`) e a data de vencimento do boleto.
+-   O manual provê uma tabela mais recente: o fator `1000` corresponde a `03/07/2000`.
+-   O fator é cíclico, reiniciando em `1000` após atingir `9999`. O ciclo se completou em `21/02/2025`.
+-   **Importante**: Boletos com vencimento "contra apresentação" ou "à vista" são proibidos. O valor do título não pode ultrapassar R$ 99.999.999,99, caso contrário, o valor "invade" o campo do fator de vencimento.
+
+### Anexo 7: Boleto de Proposta
+É uma modalidade especial de boleto (`Espécie` = `BDP`) para ofertas de produtos/serviços.
+-   O pagamento é **facultativo**.
+-   O não pagamento **NÃO** gera protesto, cobrança judicial/extrajudicial ou restrição de crédito.
+-   O pagamento significa a aceitação da proposta.
+-   **Regras Obrigatórias**:
+    -   Proibido juros de mora.
+    -   Proibida multa.
+    -   Proibido protesto.
+    -   Proibida Negativação Expressa.
+    -   O boleto deve conter um texto fixo explicando sua natureza de proposta, conforme modelo na página 63 do manual.
+
+Com certeza. Abaixo estão as notas detalhadas, incluindo as tabelas encontradas, extraídas do documento de especificações do CNAB 400 do Itaú:
+
+## 6. Notas Gerais
+
+#### **(1) TIPO/Nº DE INSCRIÇÃO DA EMPRESA/SACADOR**
+Define o tipo de inscrição (CPF/CNPJ) e o número de inscrição do beneficiário. Em casos de títulos negociados, devem ser utilizados os dados do sacador (beneficiário original) para a efetivação de protestos em cartório. Para este fim, pode-se utilizar o registro tipo "5".
+
+| TIPO INSCRIÇÃO | NÚMERO DE INSCRIÇÃO |
+| :--- | :--- |
+| 01 | Nº DO CPF DO BENEFICIÁRIO |
+| 02 | Nº DO CNPJ DO BENEFICIÁRIO |
+| 03 | CPF DO SACADOR |
+| 04 | CNPJ DO SACADOR |
+
+#### **(2) USO DA EMPRESA**
+Este campo é de livre utilização pela empresa e não é consistido pelo Itaú. A informação contida nele retorna para o beneficiário no arquivo de retorno em qualquer movimentação do título (baixa, liquidação, confirmação de protesto, etc.) com o mesmo conteúdo da entrada.
+
+#### **(3) NOSSO NÚMERO**
+*   **Para carteiras com registro:**
+    *   **Escriturais:** É enviado zerado pela empresa e retornado pelo Itaú na confirmação do registro, com exceção da carteira 115 cuja faixa de Nosso Número é de livre utilização pelo beneficiário.
+    *   **Diretas:** É de livre utilização pelo beneficiário, não podendo ser repetida se o número ainda estiver registrado no Itaú ou se transcorridos menos de 45 dias de sua baixa / liquidação. Dependendo da carteira de cobrança utilizada a faixa de Nosso Número pode ser definida pelo Banco.
+*   Para todas as movimentações envolvendo o boleto o “Nosso Número” deve ser informado.
+
+#### **(4) QUANTIDADE DE MOEDA VARIÁVEL**
+Este campo deverá ser preenchido com zeros caso a moeda seja o Real.
+
+#### **(5) CARTEIRAS DE COBRANÇA**
+Define a modalidade das carteiras (Escritural ou Direta) e suas características.
+
+| OBS | CÓD. | TIPO(*) | CARTEIRAS | DESCRIÇÃO |
+| :-- | :--- | :------ | :--- | :--- |
+| D,E | I | D | 108 | DIRETA ELETRÔNICA EMISSÃO INTEGRAL - CARNÊ |
+| E | | D | 180 | DIRETA ELETRÔNICA EMISSÃO INTEGRAL - SIMPLES |
+| | I | D | 121 | DIRETA ELETRÔNICA EMISSÃO PARCIAL - SIMPLES |
+| E | U | D | 150 | DIRETA ELETRÔNICA SEM EMISSÃO - DÓLAR |
+| | I | D | 109 | DIRETA ELETRÔNICA SEM EMISSÃO – SIMPLES |
+| | 1 | | 191 | DUPLICATAS - TRANSFERÊNCIA DE DESCONTO |
+| D | | E | 104 | ESCRITURAL ELETRÔNICA – CARNÊ |
+| F | | E | 188 | ESCRITURAL ELETRÔNICA - COBRANÇA INTELIGENTE (B2B) |
+| | | E | 147 | ESCRITURAL ELETRÔNICA – DÓLAR |
+| | I | E | 112 | ESCRITURAL ELETRÔNICA – SIMPLES |
+| | E | | 115 | ESCRITURAL ELETRÔNICA – SIMPLES - FAIXA NOSSO NÚMERO LIVRE |
+
+(*) A coluna 'TIPO' define a modalidade das carteiras: E – Escritural / D – Direta.
+*   **(A)** No arquivo retorno é informado somente: agência, conta corrente, carteira, nosso número, data de pagamento, multa, desconto/abatimento, tarifa, valor líquido.
+*   **(B)** No arquivo retorno é informado somente: agência, conta corrente, carteira, nosso número, data do pagamento, multa, desconto/abatimento, tarifa, valor líquido e seu número.
+*   **(C)** Para carteiras com impressão de carnês pelo Itaú, o arquivo remessa deverá ser ordenado por PAGADOR e vencimento. A cada alteração no nome do pagador será emitido um carnê (limitado a 99 parcelas), obedecendo a ordem do arquivo remessa. Quando a quantidade de parcelas de um carnê for superior a "99", é necessária a emissão de mais de um carnê.
+*   **(D)** Somente utilizar nosso número dentro de faixa numérica definida pelo Itaú.
+*   **(F)** Carteiras com retenção de IOF e uso exclusivo de seguradoras.
+
+#### **(6) CÓDIGO DE OCORRÊNCIA (ARQUIVO REMESSA)**
+Define as instruções de remessa que podem ser enviadas no arquivo.
+
+| OBS | CÓD. | OCORRÊNCIA | CAMPOS NECESSÁRIOS |
+| :-- | :--- | :--- | :--- |
+| | 01 | REMESSA | TODOS OS CAMPOS |
+| A | 02 | PEDIDO DE BAIXA | |
+| A,D | 04 | CONCESSÃO DE ABATIMENTO (INDICADOR 12.5) | VALOR DO ABATIMENTO |
+| A,D | 05 | CANCELAMENTO DE ABATIMENTO | VALOR DO ABATIMENTO |
+| A,D | 06 | ALTERAÇÃO DO VENCIMENTO | VENCIMENTO |
+| A,D | 07 | ALTERAÇÃO DO USO DA EMPRESA | USO DA EMPRESA |
+| A,D | 08 | ALTERAÇÃO DO SEU NÚMERO | SEU NÚMERO |
+| A,C | 09 | PROTESTAR | |
+| A,D | 10 | NÃO PROTESTAR | |
+| A,C | 11 | PROTESTO PARA FINS FALIMENTARES | |
+| A,F | 18 | SUSTAR O PROTESTO | |
+| B,D | 30 | EXCLUSÃO DE SACADOR AVALISTA | |
+| B,D | 31 | ALTERAÇÃO DE OUTROS DADOS | CAMPOS A ALTERAR |
+| A | 34 | BAIXA POR TER SIDO PAGO DIRETAMENTE AO BENEFICIÁRIO | |
+| B,G | 35 | CANCELAMENTO DE INSTRUÇÃO | CÓDIGO DA INSTRUÇÃO |
+| A | 37 | ALTERAÇÃO DO VENCIMENTO E SUSTAR PROTESTO | VENCIMENTO |
+| A,E | 38 | BENEFICIÁRIO NÃO CONCORDA COM ALEGAÇÃO DO PAGADOR | CÓDIGO DA ALEGAÇÃO |
+| A,D | 47 | BENEFICIÁRIO SOLICITA DISPENSA DE JUROS | |
+| B,D | 49 | ALTERAÇÃO DE DADOS EXTRAS (REGISTRO DE MULTA) | |
+| B,C | 66 | ENTRADA EM NEGATIVAÇÃO EXPRESSA | |
+| B,D | 67 | NÃO NEGATIVAR (INIBE A ENTRADA EM NEGATIVAÇÃO EXPRESSA) | |
+| B,F | 68 | EXCLUIR NEGATIVAÇÃO EXPRESSA (ATÉ 15 DIAS CORRIDOS APÓS A ENTRADA EM NEGATIVAÇÃO EXPRESSA) | |
+| B | 69 | CANCELAR NEGATIVAÇÃO EXPRESSA (APÓS TÍTULO TER SIDO NEGATIVADO) | |
+| H | 93 | DESCONTAR TÍTULOS ENCAMINHADOS NO DIA | |
+
+*   **(A)** São obrigatórios os seguintes campos, além dos indicados na tabela: Tipo de Registro, Agência/Conta/Dac da Empresa, Nosso Número, Número da Carteira, Código da Carteira, Valor do Título. Os demais campos devem ser preenchidos com zeros ou brancos, obedecendo a sua picture.
+*   **(B)** São obrigatórios os seguintes campos, além dos indicados na tabela: Tipo de Registro, Agência/Conta/Dac da Empresa, Nosso Número, Número da Carteira, Código da Carteira. Os campos sem alteração devem ser preenchidos com zeros ou brancos, obedecendo a sua picture. A alteração do valor do boleto deverá ser feita isoladamente, sem nenhuma outra alteração no mesmo registro.
+*   **(C)** Utilizada para agendar uma negativação ou protesto futuro sendo que o prazo de início de protesto deverá ser indicado nas posições 392 à 393, a partir do vencimento. Caso seja informado '00' no campo prazo, o processo de protesto será acionado 02 dias (corridos) após o vencimento. No caso da ocorrência “11”, o beneficiário passa a ter prioridade no recebimento quando o pagador estiver com falência decretada.
+*   **(D)** Somente são aceitas antes de iniciar o processo de negativação ou protesto. Se a negativação ou o protesto já estiver em andamento, deve-se primeiro excluir a entrada em negativação expressa ou sustar o protesto e em seguida comandar a instrução desejada (a exclusão, a sustação e a instrução podem constar no mesmo arquivo). A instrução de baixa envia a exclusão ou cancelamento da negativação expressa ou susta automaticamente o protesto e o título é baixado.
+*   **(E)** O código da alegação do pagador deverá ser informado nas posições 34 a 37 do registro de transação conforme nota 20, tabela 6, campo CÓD.
+*   **(F)** Deve ser utilizada também quando se deseja cancelar uma instrução de negativação expressa ou protesto comandada no registro de entrada, mesmo que o título ainda não tenha sido protestado.
+*   **(G)** O código da instrução a ser cancelada (1156 – Não Protestar ou 2261 – Dispensar juros/comissão de permanência) deverá ser informado nas posições 34 a 37 do registro de transação.
+*   **(H)** Utilizada para indicar títulos encaminhados no dia e que passarão pelo qualificador de crédito e que dependendo da qualificação, poderão ser descontados no próprio dia da remessa do arquivo.
+
+#### **(7) VENCIMENTO**
+Conforme determinado pelo Banco Central do Brasil na circular 3.656 e 02/04/2013, todo boleto deve possuir vencimento, não sendo permitido vencimento “à vista” ou “na apresentação". Não é mais permitido vencimento “9999999”, onde era até então impresso “À VISTA”.
+
+#### **(8) VALOR DO BOLETO**
+O boleto deverá ter seu valor expresso em reais na data de entrada, mesmo quando cobrado em moeda variável. ATENÇÃO: Conforme determinado pelo Banco Central do Brasil na circular 3.656 e 02/04/2013, todo boleto deve possuir o valor expresso, não sendo permitido valor em branco ou zerado.
+
+#### **(9) AGÊNCIA COBRADORA**
+No arquivo remessa, preencher com zeros. O Itaú define a agência cobradora pelo CEP do pagador. No arquivo retorno, poderá conter:
+
+| AGÊNCIA | SIGNIFICADO |
+| :--- | :--- |
+| 7744 | PEDIDO DE BAIXA EFETUADO PELO BENEFICIÁRIO |
+| 7788 | BAIXA AUTOMÁTICA DECORRENTE DE: INSTRUÇÃO CADASTRADA A NÍVEL CONTA CORRENTE, INSTRUÇÃO COMANDADA NO REGISTRO DE ENTRADA OU PELO PADRÃO DO ITAÚ (120 DIAS APÓS O VENCIMENTO DO TÍTULO) |
+| 7777 | BAIXA SOLICITADA VIA BANKLINE OU PELA AGÊNCIA VIA ESTAÇÃO ADMINISTRATIVA |
+| 9999 | O ITAÚ NÃO POSSUI AGÊNCIA PARA O CEP INDICADO |
+| OUTROS | Nº DA AGÊNCIA / ÓRGÃO QUE EFETUARÁ A COBRANÇA OU QUE EXECUTOU A BAIXA / LIQUIDAÇÃO |
+
+#### **(10) ESPÉCIE**
+Indica o tipo de documento de cobrança.
+
+| COD. | ESPÉCIE | COD. | ESPÉCIE |
+| :--- | :--- | :--- | :--- |
+| 01 | DUPLICATA MERCANTIL | 09 | LETRA DE CÂMBIO |
+| 02 | NOTA PROMISSÓRIA | 13 | NOTA DE DÉBITOS |
+| 03 | NOTA DE SEGURO | 15 | DOCUMENTO DE DÍVIDA |
+| 04 | MENSALIDADE ESCOLAR | 16 | ENCARGOS CONDOMINIAIS |
+| 05 | RECIBO | 17 | CONTA DE PRESTAÇÃO DE SERVIÇOS |
+| 06 | CONTRATO | 18 | BOLETO DE PROPOSTA* |
+| 07 | COSSEGUROS | 99 | DIVERSOS |
+| 08 | DUPLICATA DE SERVIÇO | | |
+
+* O Boleto de Proposta é uma modalidade de boleto utilizada para possibilitar o pagamento decorrente da eventual aceitação de uma oferta de produto ou serviço, de uma proposta de contrato civil ou de um convite para associação. Esta modalidade possui layout especifico para desenvolvimento, que deve ser solicitado ao banco.
+
+#### **(11) INSTRUÇÕES DE COBRANÇA**
+Define as instruções a serem impressas no boleto.
+
+| OBS | IMPRESSÃO NO BOLETO | CÓD. | INSTRUÇÃO |
+| :-- | :--- | :--- | :--- |
+| | SIM | 02 | DEVOLVER APÓS 05 DIAS DO VENCIMENTO |
+| | SIM | 03 | DEVOLVER APÓS 30 DIAS DO VENCIMENTO |
+| | SIM | 05 | RECEBER CONFORME INSTRUÇÕES NO PRÓPRIO TÍTULO |
+| | SIM | 06 | DEVOLVER APÓS 10 DIAS DO VENCIMENTO |
+| | SIM | 07 | DEVOLVER APÓS 15 DIAS DO VENCIMENTO |
+| | SIM | 08 | DEVOLVER APÓS 20 DIAS DO VENCIMENTO |
+| A | NÃO | 09 | PROTESTAR |
+| G | NÃO | 10 | NÃO PROTESTAR (inibe protesto, quando houver instrução permanente na conta corrente) |
+| | SIM | 11 | DEVOLVER APÓS 25 DIAS DO VENCIMENTO |
+| | SIM | 12 | DEVOLVER APÓS 35 DIAS DO VENCIMENTO |
+| | SIM | 13 | DEVOLVER APÓS 40 DIAS DO VENCIMENTO |
+| | SIM | 14 | DEVOLVER APÓS 45 DIAS DO VENCIMENTO |
+| | SIM | 15 | DEVOLVER APÓS 50 DIAS DO VENCIMENTO |
+| | SIM | 16 | DEVOLVER APÓS 55 DIAS DO VENCIMENTO |
+| | SIM | 17 | DEVOLVER APÓS 60 DIAS DO VENCIMENTO |
+| | SIM | 18 | DEVOLVER APÓS 90 DIAS DO VENCIMENTO |
+| | SIM | 19 | NÃO RECEBER APÓS 05 DIAS DO VENCIMENTO |
+| | SIM | 20 | NÃO RECEBER APÓS 10 DIAS DO VENCIMENTO |
+| | SIM | 21 | NÃO RECEBER APÓS 15 DIAS DO VENCIMENTO |
+| | SIM | 22 | NÃO RECEBER APÓS 20 DIAS DO VENCIMENTO |
+| | SIM | 23 | NÃO RECEBER APÓS 25 DIAS DO VENCIMENTO |
+| | SIM | 24 | NÃO RECEBER APÓS 30 DIAS DO VENCIMENTO |
+| | SIM | 25 | NÃO RECEBER APÓS 35 DIAS DO VENCIMENTO |
+| | SIM | 26 | NÃO RECEBER APÓS 40 DIAS DO VENCIMENTO |
+| | SIM | 27 | NÃO RECEBER APÓS 45 DIAS DO VENCIMENTO |
+| | SIM | 28 | NÃO RECEBER APÓS 50 DIAS DO VENCIMENTO |
+| | SIM | 29 | NÃO RECEBER APÓS 55 DIAS DO VENCIMENTO |
+| E | SIM | 30 | IMPORTÂNCIA DE DESCONTO POR DIA |
+| | SIM | 31 | NÃO RECEBER APÓS 60 DIAS DO VENCIMENTO |
+| | SIM | 32 | NÃO RECEBER APÓS 90 DIAS DO VENCIMENTO |
+| I | SIM | 33 | CONCEDER ABATIMENTO REF. À PIS-PASEP/COFIN/CSSL, MESMO APÓS VENCIMENTO |
+| A, H | SIM | 34 | PROTESTAR APÓS XX DIAS CORRIDOS DO VENCIMENTO |
+| A, H | SIM | 35 | PROTESTAR APÓS XX DIAS ÚTEIS DO VENCIMENTO |
+| | SIM | 37 | RECEBER ATÉ O ÚLTIMO DIA DO MÊS DE VENCIMENTO |
+| | SIM | 38 | CONCEDER DESCONTO MESMO APÓS VENCIMENTO |
+| A | SIM | 39 | NÃO RECEBER APÓS O VENCIMENTO |
+| | SIM | 40 | CONCEDER DESCONTO CONFORME NOTA DE CRÉDITO |
+| A | NÃO | 42 | PROTESTO PARA FINS FALIMENTARES |
+| | SIM | 43 | SUJEITO A PROTESTO SE NÃO FOR PAGO NO VENCIMENTO |
+| F | SIM | 44 | IMPORTÂNCIA POR DIA DE ATRASO A PARTIR DE DDMMAA |
+| | SIM | 45 | TEM DIA DA GRAÇA |
+| | SIM | 46 | USO DO BANCO |
+| | SIM | 47 | DISPENSAR JUROS/COMISSÃO DE PERMANÊNCIA |
+| | SIM | 51 | RECEBER SOMENTE COM A PARCELA ANTERIOR QUITADA |
+| | SIM | 52 | EFETUAR O PAGAMENTO SOMENTE ATRAVÉS DESTE BOLETO E NA REDE BANCÁRIA |
+| | SIM | 53 | USO DO BANCO |
+| | SIM | 54 | APÓS VENCIMENTO PAGÁVEL SOMENTE NA EMPRESA |
+| | SIM | 56 | USO DO BANCO |
+| | SIM | 57 | SOMAR VALOR DO TÍTULO AO VALOR DO CAMPO MORA/MULTA CASO EXISTA |
+| | SIM | 58 | DEVOLVER APÓS 365 DIAS DE VENCIDO |
+| | SIM | 59 | COBRANÇA NEGOCIADA. PAGÁVEL SOMENTE POR ESTE BOLETO NA REDE BANCÁRIA |
+| | SIM | 61 | TÍTULO ENTREGUE EM PENHOR EM FAVOR DO BENEFICIÁRIO ACIMA |
+| | SIM | 62 | TÍTULO TRANSFERIDO A FAVOR DO BENEFICIÁRIO |
+| A | SIM | 66 | ENTRADA EM NEGATIVAÇÃO EXPRESSA (IMPRIME: SUJEITO A NEGATIVAÇÃO APÓS O VENCIMENTO) |
+| A,G | NÃO | 67 | NÃO NEGATIVAR (INIBE A ENTRADA EM NEGATIVAÇÃO EXPRESSA) |
+| | SIM | 70 A 75 | USO DO BANCO |
+| | SIM | 78 | VALOR DA IDA ENGLOBA MULTA DE 10% PRO RATA |
+| | SIM | 79 | COBRAR JUROS APÓS 15 DIAS DA EMISSÃO (para títulos com vencimento à vista) |
+| | SIM | 80 | PAGAMENTO EM CHEQUE: SOMENTE RECEBER COM CHEQUE DE EMISSÃO DO PAGADOR |
+| | SIM | 83 | OPERAÇÃO REF A VENDOR |
+| | SIM | 84 | APÓS VENCIMENTO CONSULTAR A AGÊNCIA BENEFICIÁRIO |
+| | SIM | 86 | ANTES DO VENCIMENTO OU APÓS 15 DIAS, PAGÁVEL SOMENTE EM NOSSA SEDE |
+| | SIM | 87 | USO DO BANCO |
+| | SIM | 88 | NÃO RECEBER ANTES DO VENCIMENTO |
+| | SIM | 89 | USO DO BANCO |
+| | SIM | 90 | NO VENCIMENTO PAGÁVEL EM QUALQUER AGÊNCIA BANCÁRIA |
+| A | SIM | 91 | NÃO RECEBER APÓS XX DIAS DO VENCIMENTO |
+| A | SIM | 92 | DEVOLVER APÓS XX DIAS DO VENCIMENTO |
+| B | SIM | 93 | MENSAGENS NOS BOLETOS COM 30 POSIÇÕES |
+| C | SIM | 94 | MENSAGENS NOS BOLETOS COM 40 POSIÇÕES |
+| | SIM | 95 A 97 | USO DO BANCO |
+| D | LER OBS D | 98 | DUPLICATA / FATURA N° |
+
+*   **(A)** Informar a quantidade de dias nas posições 392 a 393. No caso da instrução “42”, o beneficiário passa a ter prioridade no recebimento quando o pagador estiver com falência decretada. A quantidade de dias será utilizada para as instruções de negativação expressa e protesto, não sendo possível informar no arquivo remessa de entrada as instruções de negativação e protesto, simultaneamente para o mesmo título. Se forem enviadas as duas instruções, a única a ser considerada será a instrução da negativação. Na negativação, caso o campo quantidade de dias seja informado com zeros, será considerado o prazo de 2 (dois) dias corridos após o vencimento. No caso da instrução “39”, se informar “00” será impresso no boleto a literal “NÃO RECEBER APÓS O VENCIMENTO".
+*   **(B)** Informar a mensagem nas posições 352 a 381; o conteúdo da mensagem será informado na primeira linha disponível no campo de “instruções” do boleto. Caso todas as linhas deste campo estejam ocupadas, a mensagem será impressa acima do campo "Sacador / Avalista”. Utilizando-se deste campo para instrução "93", para indicação do nome e dados do sacador / avalista, deve-se utilizar-se do registro tipo "1" ou do registro tipo “5”.
+*   **(C)** Informar a mensagem nas posições 352 a 391; o conteúdo da mensagem será informado na primeira linha disponível no campo de “instruções” do boleto. Caso todas as linhas deste campo estejam ocupadas, a mensagem será impressa nos campos “Sacador / Avalista” e “data da mora”. Utilizando-se deste campo para instrução “94”, para indicação do nome e dados do sacador / avalista, deve-se utilizar-se do registro tipo "1" ou do registro tipo “5”.
+*   **(D)** Informar o número da Duplicata/Fatura nas posições 087 a 106. Se este campo estiver com brancos ou zeros, a mensagem não será impressa.
+*   **(E)** Informar o valor do desconto por dia nas posições 180 a 192.
+*   **(F)** Informar o valor por dia de atraso nas posições 161 a 173 e a data nas posições 386 a 391.
+*   **(G)** Pode ser cancelada pela agência, Itaú Empresas na Internet ou através de arquivo, Código de Ocorrência 35, Nota 6, (utilizando a instrução 2196). Depois de cancelada, comandar a instrução de protesto novamente.
+*   **(H)** É impressa mensagem no boleto informando prazo de protesto.
+*   **(I)** Informar o VALOR do abatimento (nunca em percentual) referente a PIS-PASEP/COFIN/CSSL nas posições 206 a 218. A instrução será impressa no boleto com a literal: "ABATIMENTO DE XXXX.XXX,XX REF. PIS-PASEP/COFIN/CSSL, MESMO APOS VCTO".
+
+#### **(12) JUROS DE 1 DIA**
+Se o cliente optar pelo padrão do Itaú ou solicitar o cadastramento permanente na conta corrente, não haverá a necessidade de informar esse valor no arquivo. Caso seja expresso em moeda variável, deverá ser preenchido com cinco casas decimais.
+
+#### **(13) VALOR DO DESCONTO / ABATIMENTO**
+O sistema limita o desconto concedido a 90% do valor de entrada do boleto. Para um mesmo boleto podem ser concedidos mais dois descontos (Nota 16).
+
+#### **(14) VALOR DO IOF**
+Indica o valor do IOF a ser retido pelo Itaú e repassado à SRF, de uso exclusivo por seguradoras.
+
+#### **(15) NOME DO PAGADOR/BRANCOS**
+Os dois campos podem ser agrupados para registrar o nome do pagador. Se agrupados, o sistema do Itaú tentará abreviar o nome para 30 posições (ex.: Companhia = Cia), truncando o restante.
+
+#### **(16) SACADOR/AVALISTA**
+Normalmente deve ser preenchido com o nome do sacador/avalista. Alternativamente este campo poderá ter dois outros usos:
+*   (02) 2º e 3º descontos: para se operar com mais de um desconto (depende de cadastramento prévio do indicador 19.0 pelo Itaú, conforme Item 5), deve-se respeitar a seguinte disposição:
+    *   Posição 352 a 353 : Brancos
+    *   Posição 354 a 359 : Data do 2º desconto (DDMMAA)
+    *   Posição 360 a 372 : Valor do 2º desconto
+    *   Posição 373 a 378 : Data do 3º desconto (DDMMAA)
+    *   Posição 379 a 391 : Valor do 3º desconto
+    *   Posição 392 a 394 : Brancos
+*   b) Mensagens ao pagador: se utilizados as instruções 93 ou 94 (Nota 11), transcrever a mensagem desejada. É proibido o repasse e mensagens de tarifa no boleto ao pagador.
+
+#### **(17) CÓDIGO DE OCORRÊNCIA (ARQUIVO RETORNO)**
+Indica o status do título no sistema do Itaú.
+
+| CÓD. | OCORRÊNCIAS |
+| :--- | :--- |
+| 02 | ENTRADA CONFIRMADA COM POSSIBILIDADE DE MENSAGEM (NOTA 20 – TABELA 10) |
+| 03 | ENTRADA REJEITADA (NOTA 20 – TABELA 1) |
+| 04 | ALTERAÇÃO DE DADOS – NOVA ENTRADA OU ALTERAÇÃO/EXCLUSÃO DE DADOS ACATADA |
+| 05 | ALTERAÇÃO DE DADOS - BAIXA |
+| 06 | LIQUIDAÇÃO NORMAL |
+| 07 | LIQUIDAÇÃO PARCIAL - COBRANÇA INTELIGENTE (B2B) |
+| 08 | LIQUIDAÇÃO EM CARTÓRIO |
+| 09 | BAIXA SIMPLES |
+| 10 | BAIXA POR TER SIDO LIQUIDADO |
+| 11 | EM SER (SÓ NO RETORNO MENSAL) |
+| 12 | ABATIMENTO CONCEDIDO |
+| 13 | ABATIMENTO CANCELADO |
+| 14 | VENCIMENTO ALTERADO |
+| 15 | BAIXAS REJEITADAS (NOTA 20 – TABELA 4) |
+| 16 | INSTRUÇÕES REJEITADAS (NOTA 20 – TABELA 3) |
+| 17 | ALTERAÇÃO/EXCLUSÃO DE DADOS REJEITADOS (NOTA 20 – TABELA 2) |
+| 18 | COBRANÇA CONTRATUAL - INSTRUÇÕES/ALTERAÇÕES REJEITADAS/PENDENTES (NOTA 20 – TABELA 5) |
+| 19 | CONFIRMA RECEBIMENTO DE INSTRUÇÃO DE PROTESTO |
+| 20 | CONFIRMA RECEBIMENTO DE INSTRUÇÃO DE SUSTAÇÃO DE PROTESTO /TARIFA |
+| 21 | CONFIRMA RECEBIMENTO DE INSTRUÇÃO DE NÃO PROTESTAR |
+| 23 | TÍTULO ENVIADO A CARTÓRIO/TARIFA |
+| 24 | INSTRUÇÃO DE PROTESTO REJEITADA / SUSTADA / PENDENTE (NOTA 20 – TABELA 7) |
+| 25 | ALEGAÇÕES DO PAGADOR (NOTA 20 – TABELA 6) |
+| 26 | TARIFA DE AVISO DE COBRANÇA |
+| 27 | TARIFA DE EXTRATO POSIÇÃO (B40X) |
+| 28 | TARIFA DE RELAÇÃO DAS LIQUIDAÇÕES |
+| 29 | TARIFA DE MANUTENÇÃO DE TÍTULOS VENCIDOS |
+| 30 | DÉBITO MENSAL DE TARIFAS (PARA ENTRADAS E BAIXAS) |
+| 32 | BAIXA POR TER SIDO PROTESTADO |
+| 33 | CUSTAS DE PROTESTO |
+| 34 | CUSTAS DE SUSTAÇÃO |
+| 35 | CUSTAS DE CARTÓRIO DISTRIBUIDOR |
+| 36 | CUSTAS DE EDITAL |
+| 37 | TARIFA DE EMISSÃO DE BOLETO/TARIFA DE ENVIO DE DUPLICATA |
+| 38 | TARIFA DE INSTRUÇÃO |
+| 39 | TARIFA DE OCORRÊNCIAS |
+| 40 | TARIFA MENSAL DE EMISSÃO DE BOLETO/TARIFA MENSAL DE ENVIO DE DUPLICATA |
+| 41 | DÉBITO MENSAL DE TARIFAS – EXTRATO DE POSIÇÃO (B4EP/B4OX) |
+| 42 | DÉBITO MENSAL DE TARIFAS - OUTRAS INSTRUÇÕES |
+| 43 | DÉBITO MENSAL DE TARIFAS – MANUTENÇÃO DE TÍTULOS VENCIDOS |
+| 44 | DÉBITO MENSAL DE TARIFAS - OUTRAS OCORRÊNCIAS |
+| 45 | DÉBITO MENSAL DE TARIFAS - PROTESTO |
+| 46 | DÉBITO MENSAL DE TARIFAS – SUSTAÇÃO DE PROTESTO |
+| 47 | BAIXA COM TRANSFERÊNCIA PARA DESCONTO |
+| 48 | CUSTAS DE SUSTAÇÃO JUDICIAL |
+| 51 | TARIFA MENSAL REF A ENTRADAS BANCOS CORRESPONDENTES NA CARTEIRA |
+| 52 | TARIFA MENSAL BAIXAS NA CARTEIRA |
+| 53 | TARIFA MENSAL BAIXAS EM BANCOS CORRESPONDENTES NA CARTEIRA |
+| 54 | TARIFA MENSAL DE LIQUIDAÇÕES NA CARTEIRA |
+| 55 | TARIFA MENSAL DE LIQUIDAÇÕES EM BANCOS CORRESPONDENTES NA CARTEIRA |
+| 56 | CUSTAS DE IRREGULARIDADE |
+| 57 | INSTRUÇÃO CANCELADA (NOTA 20 – TABELA 8) |
+| 59 | BAIXA POR CRÉDITO EM C/C ATRAVÉS DO SISPAG |
+| 60 | ENTRADA REJEITADA CARNÊ (NOTA 20 – TABELA 1) |
+| 61 | TARIFA EMISSÃO AVISO DE MOVIMENTAÇÃO DE TÍTULOS (2154) |
+| 62 | DÉBITO MENSAL DE TARIFA – AVISO DE MOVIMENTAÇÃO DE TÍTULOS (2154) |
+| 63 | TÍTULO SUSTADO JUDICIALMENTE |
+| 64 | ENTRADA CONFIRMADA COM RATEIO DE CRÉDITO |
+| 65 | PAGAMENTO COM CHEQUE - AGUARDANDO COMPENSAÇÃO |
+| 69 | CHEQUE DEVOLVIDO (NOTA 20 – TABELA 9) |
+| 71 | ENTRADA REGISTRADA, AGUARDANDO AVALIAÇÃO |
+| 72 | BAIXA POR CRÉDITO EM C/C ATRAVÉS DO SISPAG SEM TÍTULO CORRESPONDENTE |
+| 73 | CONFIRMAÇÃO DE ENTRADA NA COBRANÇA SIMPLES - ENTRADA NÃO ACEITA NA COBRANÇA CONTRATUAL |
+| 74 | INSTRUÇÃO DE NEGATIVAÇÃO EXPRESSA REJEITADA (NOTA 20 – TABELA 11) |
+| 75 | CONFIRMAÇÃO DE RECEBIMENTO DE INSTRUÇÃO DE ENTRADA EM NEGATIVAÇÃO EXPRESSA |
+| 76 | CHEQUE COMPENSADO |
+| 77 | CONFIRMAÇÃO DE RECEBIMENTO DE INSTRUÇÃO DE EXCLUSÃO DE ENTRADA EM NEGATIVAÇÃO EXPRESSA |
+| 78 | CONFIRMAÇÃO DE RECEBIMENTO DE INSTRUÇÃO DE CANCELAMENTO DE NEGATIVAÇÃO EXPRESSA |
+| 79 | NEGATIVAÇÃO EXPRESSA INFORMACIONAL (NOTA 20 – TABELA 12) |
+| 80 | CONFIRMAÇÃO DE ENTRADA EM NEGATIVAÇÃO EXPRESSA – TARIFA |
+| 82 | CONFIRMAÇÃO DO CANCELAMENTO DE NEGATIVAÇÃO EXPRESSA – TARIFA |
+| 83 | CONFIRMAÇÃO DE EXCLUSÃO DE ENTRADA EM NEGATIVAÇÃO EXPRESSA POR LIQUIDAÇÃO – TARIFA |
+| 85 | TARIFA POR BOLETO (ATÉ 03 ENVIOS) COBRANÇA ATIVA ELETRÔNICA |
+| 86 | TARIFA EMAIL COBRANÇA ATIVA ELETRÔNICA |
+| 87 | TARIFA SMS COBRANÇA ATIVA ELETRÔNICA |
+| 88 | TARIFA MENSAL POR BOLETO (ATÉ 03 ENVIOS) COBRANÇA ATIVA ELETRÔNICA |
+| 89 | TARIFA MENSAL EMAIL COBRANÇA ATIVA ELETRÔNICA |
+| 90 | TARIFA MENSAL SMS COBRANÇA ATIVA ELETRÔNICA |
+| 91 | TARIFA MENSAL DE EXCLUSÃO DE ENTRADA DE NEGATIVAÇÃO EXPRESSA |
+| 92 | TARIFA MENSAL DE CANCELAMENTO DE NEGATIVAÇÃO EXPRESSA |
+| 93 | TARIFA MENSAL DE EXCLUSÃO DE NEGATIVAÇÃO EXPRESSA POR LIQUIDAÇÃO |
+
+#### **(18) N° DO DOCUMENTO**
+No arquivo remessa, sugerimos o preenchimento com o nº do documento que originou a cobrança (n° duplicata, Nota fiscal, etc.). No arquivo retorno, devolveremos o mesmo conteúdo enviado no arquivo remessa.
+
+#### **(19) DESCONTO/ABATIMENTO**
+Se o desconto ou abatimento é concedido na entrada do boleto estes campos são retornados zerados (apesar de corretamente registrados no Itaú). Se concedidos após a entrada, retornam com os valores do desconto ou abatimento. Na liquidação, desconto e abatimento retornam somados no campo desconto; opcionalmente, mediante cadastro prévio em nosso sistema, estes valores poderão retornar separados, conforme mostra o indicador 36.4 do Item 5 - Condições Personalizadas.
+
+#### **(20) ERROS / CANCELAMENTO DE INSTRUÇÕES / ALEGAÇÕES DO PAGADOR / MOTIVO DE DEVOLUÇÃO DO CHEQUE**
+Para as confirmações de entrada (código de ocorrência 02), em determinadas situações, pode-se ler nas posições 378 a 385, mensagem informativa referente ao título em questão, conforme tabela 10. Para os registros rejeitados (códigos de ocorrência 03, 15, 16, 17 e 18) pode-se ler nas posições 378 a 385 até quatro códigos de erro que explicam o motivo da rejeição. O indicador 38.0 (vide capítulo 5 - Condições Personalizadas) define quais desses registros serão gerados pelo Itaú. Para cancelamento de instruções (Ocorrência 57) é retornado na posição 302 a 305, o código da instrução cancelada, conforme tabela 8. Para as alegações do pagador (Ocorrência 25) e para ordem de protesto sustada (ocorrência 24), são retornados os seguintes campos adicionais, conforme tabelas 6 e 7 respectivamente:
+*   Posição 302 a 305: código complementar da ocorrência
+*   Posição 306 a 311: data complementar da ocorrência do pagador
+*   Posição 312 a 324: valor complementar da ocorrência do pagador
+
+**TABELA 1 - Entradas Rejeitadas (código da ocorrência = 03 na Posição 109 a 110)**
+| CÓD. | CAMPO COM ERRO | DESCRIÇÃO DO ERRO |
+| :--- | :--- | :--- |
+| 03 | AG. COBRADORA | CEP SEM ATENDIMENTO DE PROTESTO NO MOMENTO |
+| 04 | ESTADO | SIGLA DO ESTADO INVÁLIDA |
+| 05 | DATA VENCIMENTO | PRAZO DA OPERAÇÃO MENOR QUE PRAZO MÍNIMO OU MAIOR QUE O MÁXIMO |
+| 07 | VALOR DO TÍTULO | VALOR DO TÍTULO MAIOR QUE 10.000.000,00 |
+| 08 | NOME DO PAGADOR | NÃO INFORMADO OU DESLOCADO |
+| 09 | AGENCIA/CONTA | AGÊNCIA ENCERRADA |
+| 10 | LOGRADOURO | NÃO INFORMADO OU DESLOCADO |
+| 11 | CEP | CEP NÃO NUMÉRICO OU CEP INVÁLIDO |
+| 12 | SACADOR / AVALISTA | NOME NÃO INFORMADO OU DESLOCADO (BANCOS CORRESPONDENTES) |
+| 13 | ESTADO/CEP | CEP INCOMPATÍVEL COM A SIGLA DO ESTADO |
+| 14 | NOSSO NÚMERO | NOSSO NÚMERO JÁ REGISTRADO NO CADASTRO DO BANCO OU FORA DA FAIXA |
+| 15 | NOSSO NÚMERO | NOSSO NÚMERO EM DUPLICIDADE NO MESMO MOVIMENTO |
+| 18 | DATA DE ENTRADA | DATA DE ENTRADA INVÁLIDA PARA OPERAR COM ESTA CARTEIRA |
+| 19 | OCORRÊNCIA | OCORRÊNCIA INVÁLIDA |
+| 21 | AG. COBRADORA | CARTEIRA NÃO ACEITA DEPOSITÁRIA CORRESPONDENTE, ESTADO DA AGÊNCIA DIFERENTE DO ESTADO DO PAGADOR, AG. COBRADORA NÃO CONSTA NO CADASTRO OU ENCERRANDO |
+| 22 | CARTEIRA | CARTEIRA NÃO PERMITIDA (NECESSÁRIO CADASTRAR FAIXA LIVRE) |
+| 26 | AGÊNCIA/CONTA | AGÊNCIA/CONTA NÃO LIBERADA PARA OPERAR COM COBRANÇA |
+| 27 | CNPJ INAPTO | CNPJ DO BENEFICIÁRIO INAPTO, DEVOLUÇÃO DE TÍTULO EM GARANTIA |
+| 29 | CÓDIGO EMPRESA | CATEGORIA DA CONTA INVÁLIDA |
+| 30 | ENTRADA BLOQUEADA | ENTRADAS BLOQUEADAS, CONTA SUSPENSA EM COBRANÇA |
+| 31 | AGÊNCIA/CONTA | CONTA NÃO TEM PERMISSÃO PARA PROTESTAR (CONTATE SEU GERENTE) |
+| 35 | VALOR DO IOF | IOF MAIOR QUE 5% |
+| 36 | QTDADE DE MOEDA | QUANTIDADE DE MOEDA INCOMPATÍVEL COM VALOR DO TÍTULO |
+| 37 | CNPJ/CPF DO PAGADOR | NÃO NUMÉRICO OU IGUAL A ZEROS |
+| 42 | NOSSO NÚMERO | NOSSO NÚMERO FORA DE FAIXA |
+| 52 | AG. COBRADORA | EMPRESA NÃO ACEITA BANCO CORRESPONDENTE |
+| 53 | AG. COBRADORA | EMPRESA NÃO ACEITA BANCO CORRESPONDENTE - COBRANÇA MENSAGEM |
+| 54 | DATA DE VENCTO | BANCO CORRESPONDENTE - TÍTULO COM VENCIMENTO INFERIOR A 15 DIAS |
+| 55 | DEP/BCO CORRESP | CEP NÃO PERTENCE À DEPOSITÁRIA INFORMADA |
+| 56 | DT VENCTO/BCO CORRESP | VENCTO SUPERIOR A 180 DIAS DA DATA DE ENTRADA |
+| 57 | DATA DE VENCTO | CEP SÓ DEPOSITÁRIA BCO DO BRASIL COM VENCTO INFERIOR A 8 DIAS |
+| 60 | ABATIMENTO | VALOR DO ABATIMENTO INVÁLIDO |
+| 61 | JUROS DE MORA | JUROS DE MORA MAIOR QUE O PERMITIDO |
+| 62 | DESCONTO | VALOR DO DESCONTO MAIOR QUE VALOR DO TÍTULO |
+| 63 | DESCONTO DE ANTECIPAÇÃO | VALOR DA IMPORTÂNCIA POR DIA DE DESCONTO (IDD) NÃO PERMITIDO |
+| 64 | DATA DE EMISSÃO | DATA DE EMISSÃO DO TÍTULO INVÁLIDA |
+| 65 | TAXA FINANCTO | TAXA INVÁLIDA (VENDOR) |
+| 66 | DATA DE VENCTO | INVALIDA/FORA DE PRAZO DE OPERAÇÃO (MÍNIMO OU MÁXIMO) |
+| 67 | VALOR/QTIDADE | VALOR DO TÍTULO/QUANTIDADE DE MOEDA INVÁLIDO |
+| 68 | CARTEIRA | CARTEIRA INVÁLIDA OU NÃO CADASTRADA NO INTERCAMBIO DA COBRANÇA |
+| 69 | CARTEIRA | CARTEIRA INVÁLIDA PARA TÍTULOS COM RATEIO DE CRÉDITO |
+| 70 | AGÊNCIA/CONTA | BENEFICIÁRIO NÃO CADASTRADO PARA FAZER RATEIO DE CRÉDITO |
+| 78 | AGÊNCIA/CONTA | DUPLICIDADE DE AGÊNCIA/CONTA BENEFICIÁRIA DO RATEIO DE CRÉDITO |
+| 80 | AGÊNCIA/CONTA | QUANTIDADE DE CONTAS BENEFICIÁRIAS DO RATEIO MAIOR DO QUE O PERMITIDO (MÁXIMO DE 30 CONTAS POR TÍTULO) |
+| 81 | AGÊNCIA/CONTA | CONTA PARA RATEIO DE CRÉDITO INVÁLIDA / NÃO PERTENCE AO ITAÚ |
+| 82 | DESCONTO/ABATIMENTO | DESCONTO/ABATIMENTO NÃO PERMITIDO PARA TÍTULOS COM RATEIO DE CRÉDITO |
+| 83 | VALOR DO TÍTULO | VALOR DO TÍTULO MENOR QUE A SOMA DOS VALORES ESTIPULADOS PARA RATEIO |
+| 84 | AGÊNCIA/CONTA | AGÊNCIA/CONTA BENEFICIÁRIA DO RATEIO É A CENTRALIZADORA DE CRÉDITO DO BENEFICIÁRIO |
+| 85 | AGÊNCIA/CONTA | AGÊNCIA/CONTA DO BENEFICIÁRIO É CONTRATUAL / RATEIO DE CRÉDITO NÃO PERMITIDO |
+| 86 | TIPO DE VALOR | CÓDIGO DO TIPO DE VALOR INVÁLIDO / NÃO PREVISTO PARA TÍTULOS COM RATEIO DE CRÉDITO |
+| 87 | AGÊNCIA/CONTA | REGISTRO TIPO 4 SEM INFORMAÇÃO DE AGÊNCIAS/CONTAS BENEFICIÁRIAS DO RATEIO |
+| 90 | NRO DA LINHA | COBRANÇA MENSAGEM - NÚMERO DA LINHA DA MENSAGEM INVÁLIDO OU QUANTIDADE DE LINHAS EXCEDIDAS |
+| 97 | SEM MENSAGEM | COBRANÇA MENSAGEM SEM MENSAGEM (SÓ DE CAMPOS FIXOS), PORÉM COM REGISTRO DO TIPO 7 OU 8 |
+| 98 | FLASH INVÁLIDO | REGISTRO MENSAGEM SEM FLASH CADASTRADO OU FLASH INFORMADO DIFERENTE DO CADASTRADO |
+| 99 | FLASH INVÁLIDO | CONTA DE COBRANÇA COM FLASH CADASTRADO E SEM REGISTRO DE MENSAGEM CORRESPONDENTE |
+
+**TABELA 2 – Alteração de dados rejeitada (código da ocorrência = 17 na Posição 109 a 110)**
+| CÓD. | CAMPO COM ERRO |
+| :--- | :--- |
+| 02 | AGÊNCIA COBRADORA INVÁLIDA OU COM O MESMO CONTEÚDO |
+| 04 | SIGLA DO ESTADO INVÁLIDA |
+| 05 | DATA DE VENCIMENTO INVÁLida OU COM O MESMO CONTEÚDO |
+| 06 | VALOR DO TÍTULO COM OUTRA ALTERAÇÃO SIMULTÂNEA |
+| 08 | NOME DO PAGADOR COM O MESMO CONTEÚDO |
+| 09 | AGÊNCIA/CONTA INCORRETA |
+| 11 | CEP INVÁLIDO |
+| 12 | NÚMERO INSCRIÇÃO INVÁLIDO DO SACADOR AVALISTA |
+| 13 | SEU NÚMERO COM O MESMO CONTEÚDO |
+| 16 | ABATIMENTO/ALTERAÇÃO DO VALOR DO TÍTULO OU SOLICITAÇÃO DE BAIXA BLOQUEADA |
+| 20 | ESPÉCIE INVÁLIDA |
+| 21 | AGÊNCIA COBRADORA NÃO CONSTA NO CADASTRO DE DEPOSITÁRIA OU EM ENCERRAMENTO |
+| 23 | DATA DE EMISSÃO DO TÍTULO INVÁLIDA OU COM MESMO CONTEÚDO |
+| 41 | CAMPO ACEITE INVÁLIDO OU COM MESMO CONTEÚDO |
+| 42 | ALTERAÇÃO INVÁLIDA PARA TÍTULO VENCIDO |
+| 43 | ALTERAÇÃO BLOQUEADA – VENCIMENTO JÁ ALTERADO |
+| 53 | INSTRUÇÃO COM O MESMO CONTEÚDO |
+| 54 | DATA VENCIMENTO PARA BANCOS CORRESPONDENTES INFERIOR AO ACEITO PELO BANCO |
+| 55 | ALTERAÇÕES IGUAIS PARA O MESMO CONTROLE (AGÊNCIA/CONTA/CARTEIRA/NOSSO NÚMERO) |
+| 56 | CNPJ/CPF INVÁLIDO NÃO NUMÉRICO OU ZERADO |
+| 57 | PRAZO DE VENCIMENTO INFERIOR A 15 DIAS |
+| 60 | VALOR DE IOF - ALTERAÇÃO NÃO PERMITIDA PARA CARTEIRAS DE N.S. – MOEDA VARIÁVEL |
+| 61 | TÍTULO JÁ BAIXADO OU LIQUIDADO OU NÃO EXISTE TÍTULO CORRESPONDENTE NO SISTEMA |
+| 66 | ALTERAÇÃO NÃO PERMITIDA PARA CARTEIRAS DE NOTAS DE SEGUROS - MOEDA VARIÁVEL |
+| 67 | NOME INVÁLIDO DO SACADOR AVALISTA |
+| 72 | ENDEREÇO INVÁLIDO - SACADOR AVALISTA |
+| 73 | BAIRRO INVÁLIDO - SACADOR AVALISTA |
+| 74 | CIDADE INVÁLIDA - SACADOR AVALISTA |
+| 75 | SIGLA ESTADO INVÁLIDO - SACADOR AVALISTA |
+| 76 | CEP INVÁLIDO - SACADOR AVALISTA |
+| 81 | ALTERAÇÃO BLOQUEADA – TÍTULO COM NEGATIVAÇÃO EXPRESSA / PROTESTO |
+| 87 | ALTERAÇÃO BLOQUEADA – TÍTULO COM RATEIO DE CRÉDITO |
+
+**TABELA 3 – Instruções rejeitadas (código da ocorrência = 16 na posição 109 a 110)**
+| CÓD. | CAMPO COM ERRO |
+| :--- | :--- |
+| 01 | INSTRUÇÃO/OCORRÊNCIA NÃO EXISTENTE |
+| 03 | CONTA NÃO TEM PERMISSÃO PARA PROTESTAR (CONTATE SEU GERENTE) |
+| 06 | NOSSO NÚMERO IGUAL A ZEROS |
+| 09 | CNPJ/CPF DO SACADOR/AVALISTA INVÁLIDO |
+| 10 | VALOR DO ABATIMENTO IGUAL OU MAIOR QUE O VALOR DO TÍTULO |
+| 11 | SEGUNDA INSTRUÇÃO/OCORRÊNCIA NÃO EXISTENTE |
+| 14 | REGISTRO EM DUPLICIDADE |
+| 15 | CNPJ/CPF INFORMADO SEM NOME DO SACADOR/AVALISTA |
+| 19 | VALOR DO ABATIMENTO MAIOR QUE 90% DO VALOR DO TÍTULO |
+| 20 | EXISTE SUSTACAO DE PROTESTO PENDENTE PARA O TITULO |
+| 21 | TÍTULO NÃO REGISTRADO NO SISTEMA |
+| 22 | TÍTULO BAIXADO OU LIQUIDADO |
+| 23 | INSTRUÇÃO NÃO ACEITA |
+| 24 | INSTRUÇÃO INCOMPATÍVEL - EXISTE INSTRUÇÃO DE PROTESTO PARA O TÍTULO |
+| 25 | INSTRUÇÃO INCOMPATÍVEL – NÃO EXISTE INSTRUÇÃO DE PROTESTO PARA O TÍTULO |
+| 26 | INSTRUÇÃO NÃO ACEITA POR JÁ TER SIDO EMITIDA A ORDEM DE PROTESTO AO CARTÓRIO |
+| 27 | INSTRUÇÃO NÃO ACEITA POR NÃO TER SIDO EMITIDA A ORDEM DE PROTESTO AO CARTÓRIO |
+| 28 | JÁ EXISTE UMA MESMA INSTRUÇÃO CADASTRADA ANTERIORMENTE PARA O TÍTULO |
+| 29 | VALOR LÍQUIDO + VALOR DO ABATIMENTO DIFERENTE DO VALOR DO TÍTULO REGISTRADO |
+| 30 | EXISTE UMA INSTRUÇÃO DE NÃO PROTESTAR ATIVA PARA O TÍTULO |
+| 31 | EXISTE UMA OCORRÊNCIA DO PAGADOR QUE BLOQUEIA A INSTRUÇÃO |
+| 32 | DEPOSITÁRIA DO TÍTULO = 9999 OU CARTEIRA NÃO ACEITA PROTESTO |
+| 33 | ALTERAÇÃO DE VENCIMENTO IGUAL À REGISTRADA NO SISTEMA OU QUE TORNA O TÍTULO VENCIDO |
+| 34 | INSTRUÇÃO DE EMISSÃO DE AVISO DE COBRANÇA PARA TÍTULO VENCIDO ANTES DO VENCIMENTO |
+| 35 | SOLICITAÇÃO DE CANCELAMENTO DE INSTRUÇÃO INEXISTENTE |
+| 36 | TÍTULO SOFRENDO ALTERAÇÃO DE CONTROLE (AGÊNCIA/CONTA/CARTEIRA/NOSSO NÚMERO) |
+| 37 | INSTRUÇÃO NÃO PERMITIDA PARA A CARTEIRA |
+| 38 | INSTRUÇÃO NÃO PERMITIDA PARA TÍTULO COM RATEIO DE CRÉDITO |
+| 40 | INSTRUÇÃO INCOMPATÍVEL – NÃO EXISTE INSTRUÇÃO DE NEGATIVAÇÃO EXPRESSA PARA O TÍTULO |
+| 41 | INSTRUÇÃO NÃO PERMITIDA – TÍTULO COM ENTRADA EM NEGATIVAÇÃO EXPRESSA |
+| 42 | INSTRUÇÃO NÃO PERMITIDA – TÍTULO COM NEGATIVAÇÃO EXPRESSA CONCLUÍDA |
+| 43 | PRAZO INVÁLIDO PARA NEGATIVAÇÃO EXPRESSA – MÍNIMO: 02 DIAS CORRIDOS APÓS O VENCIMENTO |
+| 45 | INSTRUÇÃO INCOMPATÍVEL PARA O MESMO TÍTULO NESTA DATA |
+| 47 | INSTRUÇÃO NÃO PERMITIDA – ESPÉCIE INVÁLIDA |
+| 48 | DADOS DO PAGADOR INVÁLIDOS (CPF/CNPJ/NOME) |
+| 49 | DADOS DO ENDEREÇO DO PAGADOR INVÁLIDOS |
+| 50 | DATA DE EMISSÃO DO TÍTULO INVÁLIDA |
+| 51 | INSTRUÇÃO NÃO PERMITIDA – TÍTULO COM NEGATIVAÇÃO EXPRESSA AGENDADA |
+
+**TABELA 4 – Baixas rejeitadas (código da ocorrência = 15 na Posição 109 a 110)**
+| CÓD. | CAMPO COM ERRO |
+| :--- | :--- |
+| 01 | CARTEIRA/N° NÚMERO NÃO NUMÉRICO |
+| 04 | NOSSO NÚMERO EM DUPLICIDADE NO MESMO MOVIMENTO |
+| 05 | SOLICITAÇÃO DE BAIXA PARA TÍTULO JÁ BAIXADO OU LIQUIDADO |
+| 06 | SOLICITAÇÃO DE BAIXA PARA TÍTULO NÃO REGISTRADO NO SISTEMA |
+| 07 | COBRANÇA PRAZO CURTO - SOLICITAÇÃO DE BAIXA P/ TÍTULO NÃO REGISTRADO NO SISTEMA |
+| 08 | SOLICITAÇÃO DE BAIXA PARA TÍTULO EM FLOATING |
+| 10 | VALOR DO TITULO FAZ PARTE DE GARANTIA DE EMPRESTIMO |
+| 11 | PAGO ATRAVÉS DO SISPAG POR CRÉDITO EM C/C E NÃO BAIXADO |
+
+**TABELA 5 Alteração dados cobrança contratual rejeitada/pendente (código da ocorrência = 18 na Posição 109 a 110)**
+| OBS | CÓD. | CAMPO COM ERRO |
+| :-- | :--- | :--- |
+| | 16 | ABATIMENTO/ALTERAÇÃO DO VALOR DO TÍTULO OU SOLICITAÇÃO DE BAIXA BLOQUEADOS |
+| A | 40 | NÃO APROVADA DEVIDO AO IMPACTO NA ELEGIBILIDADE DE GARANTIAS |
+| A | 41 | AUTOMATICAMENTE REJEITADA |
+| A | 42 | CONFIRMA RECEBIMENTO DE INSTRUÇÃO – PENDENTE DE ANÁLISE |
+
+(0) Códigos opcionais, podem retornar desde que acordado sua utilização junto ao Banco.
+
+**TABELA 6 – Alegações do PAGADOR (código ocorrência = 25 na Posição 109 a 110)**
+| COMPLEMENTO | | |
+| :--- | :--- | :--- |
+| CÓD. | DATA | VALOR | CAMPO COM ERRO |
+| 1313 | DATA | 0 | SOLICITA A PRORROGAÇÃO DO VENCIMENTO PARA: |
+| 1321 | 0 | 0 | SOLICITA A DISPENSA DOS JUROS DE MORA |
+| 1339 | 0 | 0 | NÃO RECEBEU A MERCADORIA |
+| 1347 | 0 | 0 | A MERCADORIA CHEGOU ATRASADA |
+| 1354 | 0 | 0 | A MERCADORIA CHEGOU AVARIADA |
+| 1362 | 0 | 0 | A MERCADORIA CHEGOU INCOMPLETA |
+| 1370 | 0 | 0 | A MERCADORIA NÃO CONFERE COM O PEDIDO |
+| 1388 | 0 | 0 | A MERCADORIA ESTÁ À DISPOSIÇÃO |
+| 1396 | 0 | 0 | DEVOLVEU A MERCADORIA |
+| 1404 | 0 | 0 | NÃO RECEBEU A FATURA |
+| 1412 | 0 | 0 | A FATURA ESTÁ EM DESACORDO COM A NOTA FISCAL |
+| 1420 | 0 | 0 | O PEDIDO DE COMPRA FOI CANCELADO |
+| 1438 | 0 | 0 | A DUPLICATA FOI CANCELADA |
+| 1446 | 0 | 0 | QUE NADA DEVE OU COMPROU |
+| 1453 | 0 | 0 | QUE MANTÉM ENTENDIMENTOS COM O SACADOR |
+| 1461 | DATA | 0 | QUE PAGARÁ O TÍTULO EM: |
+| 1479 | DATA | 0 | QUE PAGOU O TÍTULO DIRETAMENTE AO BENEFICIÁRIO EM: |
+| 1487 | DATA | 0 | QUE PAGARÁ O TÍTULO DIRETAMENTE AO BENEFICIÁRIO EM: |
+| 1495 | DATA | 0 | QUE O VENCIMENTO CORRETO É: |
+| 1503 | 0 | VALOR | QUE TEM DESCONTO OU ABATIMENTO DE: |
+| 1719 | 0 | 0 | PAGADOR NÃO FOI LOCALIZADO; CONFIRMAR ENDEREÇO |
+| 1727 | 0 | 0 | PAGADOR ESTÁ EM REGIME DE CONCORDATA |
+| 1735 | 0 | 0 | PAGADOR ESTÁ EM REGIME DE FALÊNCIA |
+| 1750 | 0 | 0 | PAGADOR SE RECUSA A PAGAR JUROS BANCÁRIOS |
+| 1768 | 0 | 0 | PAGADOR SE RECUSA A PAGAR COMISSÃO DE PERMANÊNCIA |
+| 1776 | 0 | 0 | NÃO FOI POSSÍVEL A ENTREGA DO BOLETO AO PAGADOR |
+| 1784 | 0 | 0 | BOLETO NÃO ENTREGUE, MUDOU-SE / DESCONHECIDO |
+| 1792 | 0 | 0 | BOLETO NÃO ENTREGUE, CEP ERRADO / INCOMPLETO |
+| 1800 | 0 | 0 | BOLETO NÃO ENTREGUE, NÚMERO NÃO EXISTE/ENDEREÇO INCOMPLETO |
+| 1818 | 0 | 0 | BOLETO NÃO RETIRADO PELO PAGADOR. REENVIADO PELO CORREIO PARA CARTEIRAS COM EMISSÃO PELO BANCO |
+| 1826 | 0 | 0 | ENDEREÇO DE E-MAIL INVÁLIDO/COBRANÇA MENSAGEM. BOLETO ENVIADO PELO CORREIO |
+| 1834 | 0 | 0 | BOLETO DDA, DIVIDA RECONHECIDA PELO PAGADOR |
+| 1842 | 0 | 0 | BOLETO DDA, DIVIDA NÃO RECONHECIDA PELO PAGADOR |
+
+**TABELA 7 – Ordem de protesto sustada, motivo (código de ocorrência = 24 na Posição 109 a 110)**
+| COMPLEMENTO | | |
+| :--- | :--- | :--- |
+| CÓD. | DATA | VALOR | SIGNIFICADO |
+| 1610 | 0 | 0 | DOCUMENTAÇÃO SOLICITADA AO BENEFICIÁRIO |
+| 3103 | 0 | 0 | INSUFICIENCIA DE DADOS NO MODELO 4006 |
+| 3111 | 0 | 0 | SUSTAÇÃO SOLICITADA AG. BENEFICIÁRIO |
+| 3129 | 0 | 0 | TITULO NAO ENVIADO A CARTORIO |
+| 3137 | 0 | 0 | AGUARDAR UM DIA UTIL APOS O VENCTO PARA PROTESTAR |
+| 3145 | 0 | 0 | DM/DMI SEM COMPROVANTE AUTENTICADO OU DECLARACAO |
+| 3152 | 0 | 0 | FALTA CONTRATO DE SERV(AG.CED:ENVIAR) |
+| 3160 | 0 | 0 | NOME DO PAGADOR INCOMPLETO/INCORRETO |
+| 3178 | 0 | 0 | NOME DO BENEFICIÁRIO INCOMPLETO/INCORRETO |
+| 3186 | 0 | 0 | NOME DO SACADOR INCOMPLETO/INCORRETO |
+| 3194 | 0 | 0 | TIT ACEITO: IDENTIF ASSINANTE DO CHEQ |
+| 3202 | 0 | 0 | TIT ACEITO: RASURADO OU RASGADO |
+| 3210 | 0 | 0 | TIT ACEITO: FALTA TIT. (AG.CED:ENVIAR) |
+| 3228 | 0 | 0 | ATOS DA CORREGEDORIA ESTADUAL |
+| 3236 | 0 | 0 | NAO FOI POSSIVEL EFETUAR O PROTESTO |
+| 3244 | 0 | 0 | PROTESTO SUSTADO / BENEFICIÁRIO NÃO ENTREGOU A DOCUMENTAÇÃO |
+| 3251 | 0 | 0 | DOCUMENTACAO IRREGULAR |
+| 3269 | 0 | 0 | DATA DE EMISSÃO DO TÍTULO INVÁLIDA / IRREGULAR |
+| 3277 | 0 | 0 | ESPECIE INVALIDA PARA PROTESTO |
+| 3285 | 0 | 0 | PRAÇA NÃO ATENDIDA PELA REDE BANCÁRIA |
+| 3293 | 0 | 0 | CENTRALIZADORA DE PROTESTO NAO RECEBEU A DOCUMENTACAO |
+| 3301 | 0 | 0 | CNPJ/CPF DO PAGADOR INVÁLIDO / INCORRETO |
+| 3319 | 0 | 0 | SACADOR/AVALISTA E PESSOA FÍSICA |
+| 3327 | 0 | 0 | CEP DO PAGADOR INCORRETO |
+| 3335 | 0 | 0 | DEPOSITÁRIA INCOMPATÍVEL COM CEP DO PAGADOR |
+| 3343 | 0 | 0 | CNPJ/CPF SACADOR INVALIDO / INCORRETO |
+| 3350 | 0 | 0 | ENDEREÇO DO PAGADOR INSUFICIENTE |
+| 3368 | 0 | 0 | PRAÇA PAGTO INCOMPATÍVEL COM ENDEREÇO |
+| 3376 | 0 | 0 | FALTA NÚMERO/ESPÉCIE DO TÍTULO |
+| 3384 | 0 | 0 | TÍTULO ACEITO S/ ASSINATURA DO SACADOR |
+| 3392 | 0 | 0 | TÍTULO ACEITO S/ ENDOSSO BENEFICIÁRIO OU IRREGULAR |
+| 3400 | 0 | 0 | TÍTULO SEM LOCAL OU DATA DE EMISSÃO |
+| 3418 | 0 | 0 | TÍTULO ACEITO COM VALOR EXTENSO DIFERENTE DO NUMÉRICO |
+| 3426 | 0 | 0 | TÍTULO ACEITO DEFINIR ESPÉCIE DA DUPLICATA |
+| 3434 | 0 | 0 | DATA EMISSÃO POSTERIOR AO VENCIMENTO |
+| 3442 | 0 | 0 | TÍTULO ACEITO DOCUMENTO NÃO PROTESTÁVEL |
+| 3459 | 0 | 0 | TÍTULO ACEITO EXTENSO VENCIMENTO IRREGULAR |
+| 3467 | 0 | 0 | TÍTULO ACEITO FALTA NOME FAVORECIDO |
+| 3475 | 0 | 0 | TÍTULO ACEITO FALTA PRAÇA DE PAGAMENTO |
+| 3483 | 0 | 0 | TÍTULO ACEITO FALTA CPF ASSINANTE CHEQUE |
+| 3491 | 0 | 0 | FALTA NÚMERO DO TÍTULO (SEU NÚMERO) |
+| 3509 | 0 | 0 | CARTÓRIO DA PRAÇA COM ATIVIDADE SUSPENSA |
+| 3517 | 0 | 0 | DATA APRESENTACAO MENOR QUE A DATA VENCIMENTO |
+| 3525 | 0 | 0 | FALTA COMPROVANTE DA PRESTACAO DE SERVICO |
+| 3533 | 0 | 0 | CNPJ/CPF PAGADOR INCOMPATIVEL C/ TIPO DE DOCUMENTO |
+| 3541 | 0 | 0 | CNPJ/CPF SACADOR INCOMPATIVEL C/ ESPECIE |
+| 3558 | 0 | 0 | TIT ACEITO: S/ ASSINATURA DO PAGADOR |
+| 3566 | 0 | 0 | FALTA DATA DE EMISSAO DO TITULO |
+| 3574 | 0 | 0 | SALDO MAIOR QUE O VALOR DO TITULO |
+| 3582 | 0 | 0 | TIPO DE ENDOSSO INVALIDO |
+| 3590 | 0 | 0 | DEVOLVIDO POR ORDEM JUDICIAL |
+| 3608 | 0 | 0 | DADOS DO TITULO NAO CONFEREM COM DISQUETE |
+| 3616 | 0 | 0 | PAGADOR E SACADOR AVALISTA SÃO A MESMA PESSOA |
+| 3624 | 0 | 0 | COMPROVANTE ILEGIVEL PARA CONFERENCIA E MICROFILMAGEM |
+| 3632 | 0 | 0 | CONFIRMAR SE SAO DOIS EMITENTES |
+| 3640 | 0 | 0 | ENDERECO DO PAGADOR IGUAL AO DO SACADOR OU DO PORTADOR |
+| 3657 | 0 | 0 | ENDERECO DO BENEFICIÁRIO INCOMPLETO OU NAO INFORMADO |
+| 3665 | 0 | 0 | ENDERECO DO EMITENTE NO CHEQUE IGUAL AO DO BANCO PAGADOR |
+| 3673 | 0 | 0 | FALTA MOTIVO DA DEVOLUCAO NO CHEQUE OU ILEGIVEL |
+| 3681 | 0 | 0 | TITULO COM DIREITO DE REGRESSO VENCIDO |
+| 3699 | 0 | 0 | TITULO APRESENTADO EM DUPLICIDADE |
+| 3707 | 0 | 0 | LC EMITIDA MANUALMENTE (TITULO DO BANCO/CA) |
+| 3715 | 0 | 0 | NAO PROTESTAR LC (TITULO DO BANCO/CA) |
+| 3723 | 0 | 0 | ELIMINAR O PROTESTO DA LC (TITULO DO BANCO/CA) |
+| 3731 | 0 | 0 | TITULO JA PROTESTADO |
+| 3749 | 0 | 0 | TITULO - FALTA TRADUCAO POR TRADUTOR PUBLICO |
+| 3756 | 0 | 0 | FALTA DECLARACAO DE SALDO ASSINADA NO TITULO |
+| 3764 | 0 | 0 | CONTRATO DE CAMBIO – FALTA CONTA GRAFICA |
+| 3772 | 0 | 0 | PAGADOR FALECIDO |
+| 3780 | 0 | 0 | ESPECIE DE TITULO QUE O BANCO NAO PROTESTA |
+| 3798 | 0 | 0 | AUSENCIA DO DOCUMENTO FISICO |
+| 3806 | 0 | 0 | ORDEM DE PROTESTO SUSTADA, MOTIVO |
+| 3814 | 0 | 0 | PAGADOR APRESENTOU QUITAÇÃO DO TÍTULO |
+| 3822 | 0 | 0 | PAGADOR IRÁ NEGOCIAR COM BENEFICIÁRIO |
+| 3830 | 0 | 0 | CPF INCOMPATÍVEL COM A ESPÉCIE DO TÍTULO |
+| 3848 | 0 | 0 | TÍTULO DE OUTRA JURISDIÇÃO TERRITORIAL |
+| 3855 | 0 | 0 | TÍTULO COM EMISSÃO ANTERIOR A CONCORDATA DO PAGADOR |
+| 3863 | 0 | 0 | PAGADOR CONSTA NA LISTA DE FALÊNCIA |
+| 3871 | 0 | 0 | APRESENTANTE NÃO ACEITA PUBLICAÇÃO DE EDITAL |
+| 3889 | 0 | 0 | CARTÓRIO COM PROBLEMAS OPERACIONAIS |
+| 3897 | 0 | 0 | ENVIO DE TITULOS PARA PROTESTO TEMPORARIAMENTE PARALISADO |
+| 3905 | 0 | 0 | BENEFICIÁRIO COM CONTA EM COBRANCA SUSPENSA |
+| 3913 | 0 | 0 | CEP DO PAGADOR E UMA CAIXA POSTAL |
+| 3921 | 0 | 0 | ESPÉCIE NÃO PROTESTÁVEL NO ESTADO |
+| 3939 | 0 | 0 | FALTA ENDEREÇO OU DOCUMENTO DO SACADOR AVALISTA |
+| 3947 | 0 | 0 | CORRIGIR A ESPECIE DO TITULO |
+| 3954 | 0 | 0 | ERRO DE PREENCHIMENTO DO TITULO |
+| 3962 | 0 | 0 | VALOR DIVERGENTE ENTRE TITULO E COMPROVANTE |
+| 3970 | 0 | 0 | CONDOMINIO NAO PODE SER PROTESTADO P/ FINS FALIMENTARES |
+| 3988 | 0 | 0 | VEDADA INTIMACAO POR EDITAL PARA PROTESTO FALIMENTAR |
+
+**TABELA 8 – Instrução cancelada (código de ocorrência = 57 na Posição 109 a 110)**
+| CÓD. | OCORRÊNCIAS |
+| :--- | :--- |
+| 1156 | NÃO PROTESTAR |
+| 2261 | DISPENSAR JUROS/COMISSÃO DE PERMANÊNCIA |
+
+**TABELA 9 – Motivo de devolução do cheque devolvido utilizado para pagamento do boleto (código de ocorrência = 69 na Posição 109 a 110)**
+| MOT | DESCRIÇÃO | PASSÍVEL DE REAPRESENTAÇÃO |
+| :--- | :--- | :--- |
+| 11 | CHEQUE SEM FUNDOS – PRIMEIRA APRESENTAÇÃO. | SIM |
+| 12 | CHEQUE SEM FUNDOS – SEGUNDA APRESENTAÇÃO. | NÃO |
+| 13 | CONTA ENCERRADA. | NÃO |
+| 14 | PRÁTICA ESPÚRIA. | NÃO |
+| 20 | FOLHA DE CHEQUE CANCELADA POR SOLICITAÇÃO DO CORRENTISTA. | NÃO |
+| 21 | CONTRA-ORDEM (OU REVOGAÇÃO) OU OPOSIÇÃO (OU SUSTAÇÃO) AO PAGAMENTO PELO EMITENTE OU PELO PORTADOR. | SIM |
+| 22 | DIVERGÊNCIA OU INSUFICIÊNCIA DE ASSINATURA. | SIM |
+| 23 | CHEQUES EMITIDOS POR ENTIDADES E ÓRGÃOS DA ADMINISTRAÇÃO PÚBLICA FEDERAL DIRETA E INDIRETA, EM DESACORDO COM OS REQUISITOS CONSTANTES DO ARTIGO 74, § 2º, DO DECRETO-LEI Nº 200, DE 25.02.1967. | SIM |
+| 24 | BLOQUEIO JUDICIAL OU DETERMINAÇÃO DO BANCO CENTRAL DO BRASIL. | SIM |
+| 25 | CANCELAMENTO DE TALONÁRIO PELO BANCO PAGADOR. | NÃO |
+| 28 | CONTRA-ORDEM (OU REVOGAÇÃO) OU OPOSIÇÃO (OU SUSTAÇÃO) AO PAGAMENTO OCASIONADA POR FURTO OU ROUBO. | NÃO |
+| 29 | CHEQUE BLOQUEADO POR FALTA DE CONFIRMAÇÃO DO RECEBIMENTO DO TALONÁRIO PELO CORRENTISTA. | SIM |
+| 30 | FURTO OU ROUBO DE MALOTES. | NÃO |
+| 31 | ERRO FORMAL (SEM DATA DE EMISSÃO, COM O MÊS GRAFADO NUMERICAMENTE, AUSÊNCIA DE ASSINATURA, NÃO-REGISTRO DO VALOR POR EXTENSO). | SIM |
+| 32 | AUSÊNCIA OU IRREGULARIDADE NA APLICAÇÃO DO CARIMBO DE COMPENSAÇÃO. | SIM |
+| 33 | DIVERGÊNCIA DE ENDOSSO. | SIM |
+| 34 | CHEQUE APRESENTADO POR ESTABELECIMENTO BANCÁRIO QUE NÃO O INDICADO NO CRUZAMENTO EM PRETO, SEM O ENDOSSO-MANDATO. | SIM |
+| 35 | CHEQUE FRAUDADO, EMITIDO SEM PRÉVIO CONTROLE OU RESPONSABILIDADE DO ESTABELECIMENTO BANCÁRIO ("CHEQUE UNIVERSAL"), OU AINDA COM ADULTERAÇÃO DA PRAÇA SACADA. | NÃO |
+| 36 | CHEQUE EMITIDO COM MAIS DE UM ENDOSSO. | SIM |
+| 40 | MOEDA INVÁLIDA. | NÃO |
+| 41 | CHEQUE APRESENTADO A BANCO QUE NÃO O PAGADOR. | SIM |
+| 42 | CHEQUE NÃO-COMPENSÁVEL NA SESSÃO OU SISTEMA DE COMPENSAÇÃO EM QUE FOI APRESENTADO. | SIM |
+| 43 | CHEQUE, DEVOLVIDO ANTERIORMENTE PELOS MOTIVOS 21, 22, 23, 24, 31 OU 34, NÃO-PASSÍVEL DE REAPRESENTAÇÃO EM VIRTUDE DE PERSISTIR O MOTIVO DA DEVOLUÇÃO. | NÃO |
+| 44 | CHEQUE PRESCRITO. | NÃO |
+| 45 | CHEQUE EMITIDO POR ENTIDADE OBRIGADA A REALIZAR MOVIMENTAÇÃO E UTILIZAÇÃO DE RECURSOS FINANCEIROS DO TESOURO NACIONAL MEDIANTE ORDEM BANCÁRIA. | NÃO |
+| 48 | CHEQUE DE VALOR SUPERIOR AO ESTABELECIDO, EMITIDO SEM A IDENTIFICAÇÃO DO BENEFICIÁRIO, DEVENDO SER DEVOLVIDO A QUALQUER TEMPO. | SIM |
+| 49 | REMESSA NULA, CARACTERIZADA PELA REAPRESENTAÇÃO DE CHEQUE DEVOLVIDO PELOS MOTIVOS 12, 13, 14, 20, 25, 28, 30, 35, 43, 44 E 45, PODENDO A SUA DEVOLUÇÃO OCORRER A QUALQUER TEMPO. | NÃO |
+
+OBS.:Eventualmente, por determinação do Banco Central do Brasil, os motivos de devolução de cheques podem sofrer atualizações. Caso seja apresentado motivo de devolução não listado nesta tabela, a respectiva descrição pode ser obtida junto ao gerente da sua conta.
+
+**TABELA 10 – Mensagem Informativa (código de ocorrência = 02 na Posição 109 a 110)**
+| CÓD. | MENSAGEM INFORMATIVA |
+| :--- | :--- |
+| 01 | CEP SEM ATENDIMENTO DE PROTESTO NO MOMENTO |
+| 02 | ESTADO COM DETERMINAÇÃO LEGAL QU EIMPEDE A INSCRIÇÃO DE INADIMPLENTES NOS CADASTROS DE PROTEÇÃO AO CRÉDITO NO PRAZO SOLICITADO - PRAZO SUPERIOR AO SOLICITADO |
+| 03 | BOLETO NÃO LIQUIDADO NO DESCONTO DE DUPLICATAS E TRANSFERIDO PARA COBRANÇA SIMPLES |
+
+**TABELA 11 – Instrução de Negativação Expressa rejeitada (código de ocorrência = 74 na Posição 109 a 110)**
+| CÓD. | OCORRÊNCIA |
+| :--- | :--- |
+| 6007 | INCLUSÃO BLOQUEADA FACE A DETERMINAÇÃO JUDICIAL |
+| 6015 | INCONSISTÊNCIAS NAS INFORMAÇÕES DE ENDEREÇO |
+| 6023 | TÍTULO JÁ DECURSADO |
+| 6031 | INCLUSÃO CONDICIONADA A APRESENTAÇÃO DE DOCUMENTO DE DÍVIDA |
+| 6163 | EXCLUSÃO NÃO PERMITIDA, REGISTRO SUSPENSO |
+| 6171 | EXCLUSÃO PARA REGISTRO INEXISTENTE |
+| 6379 | REJEIÇÃO POR DADO(S) INCONSISTENTE(S) |
+
+**TABELA 12 – Negativação Expressa informacional (código de ocorrência = 79 na Posição 109 a 110)**
+| CÓD. | OCORRÊNCIA |
+| :--- | :--- |
+| 6049 | INFORMAÇÃO DOS CORREIOS – MUDOU-SE |
+| 6056 | INFORMAÇÃO DOS CORREIOS – DEVOLVIDO POR INFORMAÇÃO PRESTADA PELO SINDICO OU PORTEIRO |
+| 6064 | INFORMAÇÃO DOS CORREIOS – DEVOLVIDO POR INCONSISTÊNCIA NO ENDEREÇO |
+| 6072 | INFORMAÇÃO DOS CORREIOS – DESCONHECIDO |
+| 6080 | INFORMAÇÃO DOS CORREIOS – RECUSADO |
+| 6098 | INFORMAÇÃO DOS CORREIOS – AUSENTE |
+| 6106 | INFORMAÇÃO DOS CORREIOS – NÃO PROCURADO |
+| 6114 | INFORMAÇÃO DOS CORREIOS – FALECIDO |
+| 6122 | INFORMAÇÃO DOS CORREIOS – NÃO ESPECIFICADO |
+| 6130 | INFORMAÇÃO DOS CORREIOS – CAIXA POSTAL INEXISTENTE |
+| 6148 | INFORMAÇÃO DOS CORREIOS – DEVOLUÇÃO DO COMUNICADO DO CORREIO |
+| 6155 | INFORMAÇÃO DOS CORREIOS - OUTROS MOTIVOS |
+| 6478 | AR - ENTREGUE COM SUCESSO |
+| 6486 | INCLUSAO PARA REGISTRO JA EXISTENTE/RECUSADO |
+| 6494 | AR - CARTA EXTRAVIADA E NÃO ENTREGUE |
+| 6502 | AR - CARTA ROUBADA E NÃO ENTREGUE |
+| 6510 | AR - AUSENTE - ENCAMINHADO PARA ENTREGA INTERNA |
+| 6528 | AR INUTILIZADO - NÃO RETIRADO NOS CORREIOS APÓS 3 TENTATIVAS |
+| 6536 | AR - ENDERECO INCORRETO |
+| 6544 | AR - NAO PROCURADO - DEVOLVIDO AO REMETENTE |
+| 6551 | AR - NÃO ENTREGUE POR FALTA DE APRESENTAR DOCUMENTO COM FOTO |
+| 6569 | AR - MUDOU-SE |
+| 6577 | AR - DESCONHECIDO |
+| 6585 | AR - RECUSADO |
+| 6593 | AR - ENDERECO INSUFICIENTE |
+| 6601 | AR - NAO EXISTE O NUMERO INDICADO |
+| 6618 | AR - AUSENTE |
+| 6627 | AR - CARTA NAO PROCURADA NA UNIDADE DOS CORREIOS |
+| 6635 | AR - FALECIDO |
+| 6643 | AR - DEVIDO A DEVOLUCAO DO COMUNICADO DO CORREIO |
+
+#### **(21) QUANTIDADE E VALOR TOTAL DE BOLETOS**
+Esses campos referem-se às quantidades e valores dos boletos à vencer registrados no Itaú, nas diversas modalidades de cobrança.
+
+#### **(22) AVISO BANCÁRIO**
+Refere-se ao código do extrato de Movimentação de Títulos (MT) associado a esse movimento.
+
+#### **(23) NÚMERO DO BOLETO/USO DO ITAÚ (ANEXO 1)**
+Para efetuar corretamente o recebimento de um título, o Itaú necessita que o campo "Nosso Número" do boleto de cobrança esteja preenchido com o número da carteira de cobrança, o número do boleto e seu DAC - Dígito de Auto Conferência (formato: CCC/NNNNNNNN-D). O próprio Banco se encarrega do cálculo do DAC e sua impressão, quando se tratar de cobrança com registro ou fornecer boletos parcialmente preenchidos. Para todas as carteiras de cobrança do Itaú o DAC do "Nosso Número" é calculado a partir dos campos : Agência, Conta do BENEFICIÁRIO (sem DAC), Número da carteira e "Nosso Número", exceto as carteiras escriturais e na modalidade direta as carteiras 126, 131, 145, 150 е 168, cujo DAC do "Nosso Número" e composto apenas dos campos : Carteira e Nosso Número, mas todos calculados através do Módulo 10, cuja explicação vem a seguir. Multiplica-se cada algarismo do número formado pela composição dos campos acima pela sequência de multiplicadores 2, 1, 2, 1, 2, 1, 2 (posicionados da direita para a esquerda). A seguir, somam-se os
+
+#### **(24) LITERAL DE MOEDA (ANEXO 1)**
+Literal da moeda a ser impressa no boleto identificando a espécie da moeda. Se o valor vier expresso em Reais, a informação será ignorada e será impresso R$ no boleto.
+
+#### **(25) LOCAL DE PAGAMENTO / AGÊNCIA COBRADORA (ANEXO 1)**
+O campo “agência cobradora" deve ser preenchido com brancos. O Itaú definirá o código desta agência mediante o CEP do PAGADOR. Na área do boleto reservada para indicar o LOCAL DE PAGAMENTO, colocar:
+*   **Para boletos COM REGISTRO** (conforme item (5) da nota 4)
+    ATÉ O VENCIMENTO, PAGUE EM QUALQUER BANCO OU CORRESPONDENTE NÃO BANCÁRIO. APÓS O VENCIMENTO, ACESSE ITAU.COM.BR/BOLETOS E PAGUE EM QUALQUER BANCO OU CORRESPONDENTE NÃO BANCÁRIO.
+*   **Para boletos SEM REGISTRO** (conforme item (5) da nota 4)
+    ATÉ O VENCIMENTO, PAGUE EM QUALQUER BANCO OU CORRESPONDENTE NÃO BANCÁRIO. APÓS O VENCIMENTO PAGUE NO ITAÚ
+
+#### **(26) INSTRUÇÕES (ANEXO 1)**
+Área do boleto reservada para instruções, formada por nove linhas de 69 caracteres. Essa área será de livre utilização pela Empresa, que informará o conteúdo de cada linha a ser impressa através dos registros com códigos de layout "2 e 3". Caso não haja nenhuma instrução, não são necessários os registros com códigos de layout "2 e 3". Caso existam até cinco linhas de instruções, não é necessário o registro com código de layout "3". É proibido o repasse e mensagens de tarifa no boleto ao pagador.
+
+#### **(27) INSTRUÇÃO/ALEGAÇÃO CANCELADA**
+Deve ser preenchido na remessa somente quando utilizados, na posição 109-110, os códigos de ocorrência 35 – Cancelamento de Instrução e 38 – beneficiário não concorda com alegação do pagador. Para os demais códigos de ocorrência este campo deverá ser preenchido com zeros. Obs.: No arquivo retorno será informado o mesmo código da instrução cancelada, e para o cancelamento de alegação de pagador não há retorno da informação.
+
+#### **(28) CÓDIGO DE LIQUIDAÇÃO**
+Indica o canal utilizado pelo pagador para pagamento do boleto e, para clientes que possuem o crédito das liquidações separado em função do recurso utilizado no pagamento, indica se o crédito do valor correspondente estará “disponível” ou “a compensar" na data do lançamento em conta corrente.
+
+| CÓD | DESCRIÇÃO | RECURSO |
+| :-- | :--- | :--- |
+| AA | CAIXA ELETRÔNICO ITAÚ | DISPONÍVEL |
+| AC | PAGAMENTO EM CARTÓRIO AUTOMATIZADO | A COMPENSAR |
+| AO | ACERTO ONLINE | DISPONÍVEL |
+| BC | BANCOS CORRESPONDENTES | DISPONÍVEL |
+| BF | ITAÚ BANKFONE | DISPONÍVEL |
+| BL | ITAÚ BANKLINE | DISPONÍVEL |
+| BO | OUTROS BANCOS - RECEBIMENTO OFF-LINE | A COMPENSAR |
+| B1 | OUTROS BANCOS - PELO CÓDIGO DE BARRAS | A COMPENSAR |
+| B2 | OUTROS BANCOS - PELA LINHA DIGITÁVEL | A COMPENSAR |
+| B3 | OUTROS BANCOS - PELO AUTO ATENDIMENTO | A COMPENSAR |
+| B4 | OUTROS BANCOS - RECEBIMENTO EM CASA LOTÉRICA | A COMPENSAR |
+| B5 | OUTROS BANCOS - CORRESPONDENTE | A COMPENSAR |
+| B6 | OUTROS BANCOS - TELEFONE | A COMPENSAR |
+| B7 | OUTROS BANCOS – ARQUIVO ELETRÔNICO (Pagamento Efetuado por meio de troca de arquivos) | A COMPENSAR |
+| CC | AGÊNCIA ITAÚ – COM CHEQUE DE OUTRO BANCO ou (CHEQUE ITAÚ)* | A COMPENSAR |
+| CI | CORRESPONDENTE ITAÚ | DISPONÍVEL |
+| CK | SISPAG - SISTEMA DE CONTAS A PAGAR ITAÚ | DISPONÍVEL |
+| CP | AGÊNCIA ITAÚ – POR DÉBITO EM CONTA CORRENTE, CHEQUE ITAÚ* OU DINHEIRO | DISPONÍVEL |
+| DG | AGÊNCIA ITAÚ – CAPTURADO EM OFF-LINE | DISPONÍVEL |
+| LC | PAGAMENTO EM CARTÓRIO DE PROTESTO COM CHEQUE | A COMPENSAR |
+| EA | TERMINAL DE CAIXA | DISPONÍVEL |
+| Q0 | AGENDAMENTO - PAGAMENTO AGENDADO VIA BANKLINE OU OUTRO CANAL ELETRÔNICO E LIQUIDADO NA DATA INDICADA | DISPONÍVEL |
+| RA | DIGITAÇÃO - REALIMENTAÇÃO AUTOMÁTICA | DISPONÍVEL |
+| ST | PAGAMENTO VIA SELTEC** | DISPONÍVEL |
+
+*Se utiliza BLOQUEIO DE CHEQUE o retorno de CHEQUE ITAÚ será devolvido como CC.
+**Sistema Eletrônico de Liquidação de Títulos em Cartório
+
+#### **(29) ENDEREÇO DE E-MAIL**
+Para as carteiras de cobrança escriturais, onde o Itaú mantém o registro da cobrança e se encarrega de imprimir e postar os boletos (carteiras identificadas na nota '5'), tendo sido acertado previamente entre o beneficiário e o pagador, o boleto poderá ser remetido ao pagador por e-mail, destinando-o ao endereço especificado neste campo. Se o endereço de e-mail informado for inválido, o boleto será impresso e enviado pelos meios tradicionais. Neste caso o beneficiário será informado no arquivo retorno pela ocorrência '25' e motivo '1826' (conforme nota '20' e tabela '6'). Se o pagador não acessar o boleto até 5 dias úteis antes do vencimento, desde que já tenham se passado 2 dias úteis do envio do e-mail, o boleto será impresso e enviado pelos meios tradicionais. Neste caso, o beneficiário será informado no arquivo retorno pela ocorrência '25' e motivo ‘1818' (conforme nota ‘20' e tabela '6').
+
+#### **(30) SACADOR/AVALISTA**
+Existindo a figura do Sacador/Avalista, é imprescindível informar corretamente todos os dados a ele relacionados, conforme lei federal 12.039, que exige os dados completos para facilitar o contato entre pagador e o emissor e, caso venha a ser solicitado o protesto da dívida, é facultado aos Cartórios de Protestos de Títulos exigirem tais dados com exatidão.
+
+| CÓD DE INSCRIÇÃO | NÚMERO DE INSCRIÇÃO | OBSERVAÇÃO |
+| :--- | :--- | :--- |
+| 00 | PREENCHER COM ZEROS | NÃO HÁ SACADOR/AVALISTA. |
+| 01 | NÚMERO DO CPF | INFORMAR O CPF DO SACADOR/AVALISTA. |
+| 02 | NÚMERO DO CNPJ | INFORMAR O CNPJ DO SACADOR/AVALISTA. |
+
+Obs.: Verificar o preenchimento do registro detalhe 02 nas posições 002-003 o preenchimento correspondente ao tipo de inscrição do Sacador Avalista.
+
+#### **(31) DATA DE EMISSÃO (DDMMAA)**
+A data informada neste campo deve ser a mesma data de emissão do título de crédito (Duplicata de Serviço / Duplicata Mercantil / Nota Fiscal, etc), que deu origem a esta Cobrança. Existindo divergência, na existência de protesto, a documentação poderá não ser aceita pelo Cartório.
+
+#### **(32) TIPO DE VALOR**
+**ARQUIVO REMESSA:**
+O campo Tipo de Valor (posição 394 do registro Tipo 4) define se o rateio de crédito deve ser feito por percentual (%) ou em valor (R$):
+
+| CONTEÚDO | DESCRIÇÃO |
+| :--- | :--- |
+| 1 | RATEIO DE CRÉDITO POR PERCENTUAL (%) – VALOR NOMINAL DO TÍTULO (*) |
+| 2 | RATEIO DE CRÉDITO EM VALOR (R$) - VALOR NOMINAL DO TÍTULO (*) |
+| 3 | RATEIO DE CRÉDITO POR PERCENTUAL (%) – VALOR LÍQUIDO RECEBIDO (**) |
+| 4 | RATEIO DE CRÉDITO EM VALOR (R$) - VALOR LÍQUIDO RECEBIDO, RATEADO PROPORCIONALMENTE AOS VALORES DE RATEIO INFORMADOS NA REMESSA (**) |
+
+(*) Para os Tipos de Valor "1” e “2”, o rateio é feito sobre o valor nominal do título e eventuais diferenças de pagamentos a maior (juros) ou a menor (desconto) são contabilizadas na conta de crédito do beneficiário.
+(**) Para os Tipos de Valor “3” e “4”, o rateio é feito sobre o valor liquido recebido em pagamento. O valor líquido recebido corresponde ao: Valor Nominal - Desconto + Juros.
+
+Portanto, os campos VALOR de cada conta de crédito devem obedecer aos seguintes formatos:
+- **Rateio por PERCENTUAL:** formato "9(10)V9(3)";
+- **Rateio em VALOR:** formato "9(11)V9(2)”.
+
+**ARQUIVO RETORNO:**
+Nas confirmações das entradas, os campos VALOR são informados com o mesmo formato (percentual ou valor) definido no arquivo remessa; Na ocorrência de liquidação, os campos VALOR apresentam o valor efetivamente creditado na conta de crédito.
+
+#### **(33) AGÊNCIA CONTA DO CHEQUE**
+Este campo será preenchido da seguinte forma: AAAA00CCCCCD
+Onde:
+AAAA - Número da agência de débito do cheque;
+00 - Dois zeros;
+CCCCC - Número da conta de débito do cheque;
+D - Dac da agência/conta de débito do cheque.
+
+#### **(34) BOLETO DDA**
+Este serviço requer cadastramento prévio junto ao Banco. Para as ocorrência de confirmação de entrada (código de ocorrência “02”, nas posições 109 e 110 do registro de transação) o arquivo retorno de Cobrança passará a apresentar neste campo a indicação de Boleto DDA, conforme segue:
+
+| CÓDIGO | DESCRIÇÃO |
+| :--- | :--- |
+| 0 | NÃO É BOLETO DDA (PAGADOR NÃO ADERIU AO DDA ATÉ O MOMENTO) |
+| 1 | BOLETO DDA (PAGADOR ADERIU AO DDA EM AO MENOS UM BANCO DE RELACIONAMENTO) |
+
+#### **(35) - MULTA**
+O código da Multa irá determinar como o sistema irá atribuir o valor da multa.
+
+| CÓDIGO | DESCRIÇÃO |
+| :--- | :--- |
+| 0 | NÃO REGISTRA A MULTA |
+| 1 | VALOR EM REAIS (FIXO) |
+| 2 | VALOR EM PERCENTUAL COM DUAS CASAS DECIMAIS CONFORME ESTRUTURA DO CAMPO |
+
+*   Qualquer informação enviada diferente das opções informadas no domínio acima, o cliente receberá erro de registro inválido no tipo 1.
+*   Caso seja informado o domínio '0', o cliente não irá enviar a multa, mas poderá utilizar alguma outra função que esteja disponível para o registro tipo 2 no futuro.
+
+**DATA DA MULTA**
+Data da Multa, data que passa incidir a cobrança da Multa. Campo deve ser formatado como DDMMAAAA. A data informada deve ser Maior ou igual a data de vencimento do título.
+
+**MULTA**
+O Campo Valor / Percentual define se a multa será informada em Valor nominal ou percentual *
+O campo valor deve obedecer ao seguinte formato:
+- Percentual: Formato “9(11)V9(2)”
+- Valor: Formato "9(11)V9(2)
+*O percentual será aplicado sobre o Valor Nominal do título

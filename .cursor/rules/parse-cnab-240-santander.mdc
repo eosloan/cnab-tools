@@ -1,0 +1,368 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Regras de Parse: Santander Cobrança Bancária CNAB 240 (H7815)
+
+Este documento detalha o layout e as regras para o processamento de arquivos de Remessa e Retorno no padrão CNAB 240 para o serviço de Cobrança Bancária do Santander, conforme a versão 8.3 (Abril/2025).
+
+## Sumário
+
+1.  [Informações Gerais](#1-informações-gerais)
+2.  [Estrutura Geral dos Arquivos](#2-estrutura-geral-dos-arquivos)
+3.  [Orientações para Boleto SX (QR Code - PIX)](#3-orientações-para-boleto-sx-qr-code---pix)
+4.  [Layout do Arquivo de Remessa](#4-layout-do-arquivo-de-remessa)
+    *   [Header de Arquivo](#41-header-de-arquivo-remessa)
+    *   [Header de Lote](#42-header-de-lote-remessa)
+    *   [Segmento P (Obrigatório)](#43-segmento-p-obrigatório)
+    *   [Segmento Q (Obrigatório)](#44-segmento-q-obrigatório)
+    *   [Segmento R (Opcional)](#45-segmento-r-opcional)
+    *   [Segmento S (Opcional)](#46-segmento-s-opcional)
+    *   [Segmento Y-03 (Opcional - PIX)](#47-segmento-y-03-opcional---pix)
+    *   [Segmento Y-53 (Opcional - Pagamento)](#48-segmento-y-53-opcional---pagamento)
+    *   [Trailer de Lote](#49-trailer-de-lote-remessa)
+    *   [Trailer de Arquivo](#410-trailer-de-arquivo-remessa)
+5.  [Layout do Arquivo de Retorno](#5-layout-do-arquivo-de-retorno)
+    *   [Header de Arquivo](#51-header-de-arquivo-retorno)
+    *   [Header de Lote](#52-header-de-lote-retorno)
+    *   [Segmento T (Obrigatório)](#53-segmento-t-obrigatório)
+    *   [Segmento U (Obrigatório)](#54-segmento-u-obrigatório)
+    *   [Segmento Y-03 (Opcional - PIX)](#55-segmento-y-03-opcional---pix-retorno)
+    *   [Segmento Y-04 (Opcional - Cheques)](#56-segmento-y-04-opcional---cheques)
+    *   [Trailer de Lote](#57-trailer-de-lote-retorno)
+    *   [Trailer de Arquivo](#58-trailer-de-arquivo-retorno)
+6.  [Detalhamento das Notas Principais](#6-detalhamento-das-notas-principais)
+    *   [Nota 15: Cálculo do Dígito Verificador do Nosso Número (Módulo 11)](#nota-15-cálculo-do-dígito-verificador-do-nosso-número-módulo-11)
+    *   [Nota 40-A e 40-C: Códigos de Rejeição, Liquidação e Baixa](#nota-40-a-e-40-c-códigos-de-rejeição-liquidação-e-baixa)
+    *   [Nota 41: Ocorrências / Alegações do Pagador](#nota-41-ocorrências--alegações-do-pagador)
+
+---
+
+## 1. Informações Gerais
+
+### 1.1. Formato do Arquivo
+-   **Tipo:** Texto, com um registro por linha.
+-   **Tamanho do Registro:** Fixo em **240 posições (bytes)**.
+-   **Codificação:** ASCII.
+
+### 1.2. Formato dos Campos (Picture)
+-   **`N` (Numérico):** Alinhado à direita, com zeros à esquerda. Decimais não possuem separador físico.
+-   **`A` (Alfanumérico):** Alinhado à esquerda, com espaços em branco à direita. Usar caixa alta, sem acentos ou cedilha.
+
+---
+
+## 2. Estrutura Geral dos Arquivos
+
+Os arquivos CNAB 240 são organizados em uma estrutura hierárquica de Arquivo > Lote > Segmentos.
+
+-   **Header de Arquivo (Tipo de Registro 0):** Inicia o arquivo.
+-   **Lote de Serviço:** Agrupa um conjunto de boletos.
+    -   **Header de Lote (Tipo de Registro 1):** Inicia um lote.
+    -   **Registros de Detalhe (Segmentos, Tipo de Registro 3):** Contêm os dados dos boletos. Cada boleto é composto por um ou mais segmentos.
+        -   **Remessa:** P (obrigatório), Q (obrigatório), R (opcional), S (opcional), Y (opcional).
+        -   **Retorno:** T (obrigatório), U (obrigatório), Y (opcional).
+    -   **Trailer de Lote (Tipo de Registro 5):** Finaliza o lote com totais.
+-   **Trailer de Arquivo (Tipo de Registro 9):** Finaliza o arquivo com totais gerais.
+
+---
+
+## 3. Orientações para Boleto SX (QR Code - PIX)
+
+-   **Pré-requisito:** O Beneficiário deve ter uma chave DICT cadastrada no Santander.
+-   **Registro na Remessa:**
+    -   Enviar os segmentos **P, Q e Y-03** com o código de movimento `01` (Entrada de Boleto).
+    -   O Segmento Y-03 transporta o **TXID** (Código de Identificação do QR Code).
+    -   **TXID:** Deve ser único por boleto, com no mínimo 26 e no máximo 35 caracteres alfanuméricos (`A-Z, a-z, 0-9`). O banco atribui um automaticamente se não for informado, com a estrutura: `Data (DDMMAAAA) + Nosso Número (13) + Cód. Beneficiário (9) + Ambiente (1) + Sigla Sistema (2)`.
+-   **Retorno do Pagamento PIX:**
+    -   **Padrão:** Movimento `09` (Baixa) com ocorrência `09` (Baixa comandada).
+    -   **Parametrizável:** Pode-se configurar para retornar Movimento `09` com ocorrência `92` (Baixa por pagamento PIX) ou Movimento `06` (Liquidação) com ocorrência `61` (Liquidado por Pagamento via PIX).
+-   **Retorno da Confirmação:** O Segmento Y-03 será retornado com a URL do QR Code.
+
+---
+
+## 4. Layout do Arquivo de Remessa
+
+### 4.1. Header de Arquivo (Remessa)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :-------------------------------- | :-- | :-------------------------------------------------------------------------------------------------- |
+| 001-003 | 3 | Código do Banco na compensação | N | `033` ou `353` |
+| 004-007 | 4 | Lote de serviço | N | `0000` (Nota 1) |
+| 008-008 | 1 | Tipo de registro | N | `0` (Nota 2) |
+| 009-016 | 8 | Reservado (uso Banco) | A | Brancos |
+| 017-017 | 1 | Tipo de inscrição da empresa | N | `1`=CPF, `2`=CNPJ |
+| 018-032 | 15 | N° de inscrição da empresa | N | CNPJ/CPF do Beneficiário |
+| 033-047 | 15 | Código de Transmissão | N | Código cedido pelo banco (Nota 3) |
+| 048-072 | 25 | Reservado (uso Banco) | A | Brancos |
+| 073-102 | 30 | Nome da empresa | A | Nome do Beneficiário |
+| 103-132 | 30 | Nome do Banco | A | `BANCO SANTANDER` |
+| 133-142 | 10 | Reservado (uso Banco) | A | Brancos |
+| 143-143 | 1 | Código remessa | N | `1`=Remessa |
+| 144-151 | 8 | Data de geração do arquivo | N | `DDMMAAAA` |
+| 152-157 | 6 | Reservado (uso Banco) | A | Brancos |
+| 158-163 | 6 | N° sequencial do arquivo | N | Número sequencial para controle (Nota 4) |
+| 164-166 | 3 | Nº da versão do layout do arquivo | N | `040` |
+| 167-240 | 74 | Reservado (uso Banco) | A | Brancos |
+
+### 4.2. Header de Lote (Remessa)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :-------------------------------- | :-- | :---------------------------------------------------------------------------------------------------- |
+| 001-003 | 3 | Código do Banco na compensação | N | `033` |
+| 004-007 | 4 | Número do lote remessa | N | Sequencial, iniciando em `0001` (Nota 1) |
+| 008-008 | 1 | Tipo de registro | N | `1` (Nota 2) |
+| 009-009 | 1 | Tipo de operação | A | `R` (Remessa) |
+| 010-011 | 2 | Tipo de serviço | N | `01` (Cobrança) |
+| 012-013 | 2 | Reservado (uso Banco) | A | Brancos |
+| 014-016 | 3 | Nº da versão do layout do lote | N | `030` |
+| 017-017 | 1 | Reservado (uso Banco) | A | Brancos |
+| 018-018 | 1 | Tipo de inscrição da empresa | N | `1`=CPF, `2`=CNPJ |
+| 019-033 | 15 | Nº de inscrição da empresa | N | CNPJ/CPF do Beneficiário |
+| 034-053 | 20 | Reservado (uso Banco) | A | Brancos |
+| 054-068 | 15 | Código de Transmissão | N | Código cedido pelo banco (Nota 3) |
+| 069-073 | 5 | Reservado (uso Banco) | A | Brancos |
+| 074-103 | 30 | Nome do Beneficiário | A | Nome do Beneficiário |
+| 104-143 | 40 | Mensagem 1 | A | Mensagem para ficha de compensação (Nota 9) |
+| 144-183 | 40 | Mensagem 2 | A | Mensagem para ficha de compensação (Nota 9) |
+| 184-191 | 8 | Número remessa/retorno | N | Número da remessa para controle (Nota 10) |
+| 192-199 | 8 | Data da gravação remessa/retorno | N | `DDMMAAAA` |
+| 200-240 | 41 | Reservado (uso Banco) | A | Brancos |
+
+### 4.3. Segmento P (Obrigatório)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :-------------------------------- | :-- | :----------------------------------------------------------------------------------------------------------------- |
+| 001-007 | 7 | Banco e Lote | N | Cód. Banco (`033`) e Lote Remessa |
+| 008-008 | 1 | Tipo de registro | N | `3` |
+| 009-013 | 5 | N° sequencial do registro de lote | N | Sequencial do registro no lote (Nota 11) |
+| 014-014 | 1 | Cód. Segmento | A | `P` (Nota 13) |
+| 015-015 | 1 | Reservado (uso Banco) | A | Branco |
+| 016-017 | 2 | Código de movimento remessa | N | **(Nota 14)** `01`=Entrada, `02`=Baixa, `06`=Alteração de vencimento, `31`=Alteração outros dados |
+| 018-021 | 4 | Agência do Destinatário | N | Agência do beneficiário |
+| 022-022 | 1 | Dígito da Agência | N | DV da Agência |
+| 023-031 | 9 | Número da conta corrente | N | Conta do beneficiário |
+| 032-032 | 1 | Dígito verificador da conta | N | DV da Conta |
+| 045-057 | 13 | Identificação do boleto no Banco | N | **Nosso Número** (Nota 15) |
+| 058-058 | 1 | Tipo de cobrança | A | **(Nota 5)** `1`=Simples, `3`=Caucionada, `4`=Descontada, `5`=Simples Rápida com Registro |
+| 059-059 | 1 | Forma de Cadastramento | N | **(Nota 6)** `1`=Registrada, `2`=Sem Registro, `3`=Simples com Pré-Impresso |
+| 060-060 | 1 | Tipo de documento | N | `1`=Tradicional, `2`=Escritural |
+| 063-077 | 15 | N° do documento | A | **Seu Número** (Nota 16) |
+| 078-085 | 8 | Data de vencimento do boleto | N | `DDMMAAAA` (Nota 17) |
+| 086-100 | 15 | Valor nominal do boleto | N | 2 decimais s/ separador (Nota 18) |
+| 107-108 | 2 | Espécie do boleto | N | **(Nota 20)** `02`=DM, `04`=DS, `31`=BCC, `32`=BDP |
+| 109-109 | 1 | Identif. de boleto Aceito/Não Aceito | A | `N`=Não Aceite |
+| 110-117 | 8 | Data da emissão do boleto | N | `DDMMAAAA` |
+| 118-118 | 1 | Código de juros de mora | N | **(Nota 21)** `1`=Valor/dia, `2`=Taxa Mensal, `3`=Isento |
+| 119-126 | 8 | Data de juros de mora | N | `DDMMAAAA` (Nota 22) |
+| 127-141 | 15 | Valor da mora/dia ou Taxa mensal | N | 2 decimais (valor) ou 5 decimais (taxa) s/ separador (Nota 18) |
+| 142-142 | 1 | Código do desconto 1 | N | **(Nota 23)** `0`=Isento, `1`=Valor Fixo, `2`=Percentual |
+| 143-150 | 8 | Data de desconto 1 | N | `DDMMAAAA` |
+| 151-165 | 15 | Valor ou Percentual do desconto | N | 2 decimais s/ separador |
+| 166-180 | 15 | Percentual do IOF a ser recolhido | N | 5 decimais s/ separador (Nota 18) |
+| 181-195 | 15 | Valor do abatimento | N | 2 decimais s/ separador (Nota 18) |
+| 196-220 | 25 | Identificação do boleto na empresa | A | Uso Beneficiário (opcional) (Nota 24) |
+| 221-221 | 1 | Código para protesto | N | **(Nota 25)** `1`=Dias Corridos, `2`=Dias Úteis, `3`=Perfil Beneficiário |
+| 222-223 | 2 | Número de dias para protesto | N | Dias para protesto |
+| 224-224 | 1 | Código para Baixa/Devolução | N | **(Nota 26)** `1`=Baixar/Devolver, `2`=Não Baixar, `3`=Perfil Beneficiário |
+| 226-227 | 2 | Número de dias para Baixa/Devolução | N | Dias para baixa/devolução |
+| 228-229 | 2 | Código da moeda | N | `00`=Real (Nota 27) |
+| 230-240 | 11 | Reservado (uso Banco) | A | Brancos |
+
+### 4.4. Segmento Q (Obrigatório)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :-------------------------------- | :-- | :---------------------------------------------------------------------------------------------------- |
+| 001-013 | 13 | Lote, Registro, Sequencial, Segmento | - | Informações de controle |
+| 016-017 | 2 | Código de movimento remessa | N | Mesmo valor do Segmento P |
+| 018-018 | 1 | Tipo de inscrição do Pagador | N | `1`=CPF, `2`=CNPJ (Nota 29) |
+| 019-033 | 15 | Número de inscrição do Pagador | N | CPF/CNPJ do Pagador |
+| 034-073 | 40 | Nome Pagador | A | Nome do Pagador |
+| 074-113 | 40 | Endereço Pagador | A | Endereço completo do Pagador (Nota 28) |
+| 114-128 | 15 | Bairro Pagador | A | Bairro do Pagador |
+| 129-133 | 5 | CEP do Pagador | N | CEP do Pagador |
+| 134-136 | 3 | Sufixo do Cep do Pagador | N | Sufixo do CEP |
+| 137-151 | 15 | Cidade do Pagador | A | Cidade do Pagador |
+| 152-153 | 2 | UF do Pagador | A | UF do Pagador |
+| 154-154 | 1 | Tipo de inscrição Beneficiário Final | N | `1`=CPF, `2`=CNPJ (Antigo Sacador/Avalista) (Nota 29) |
+| 155-169 | 15 | N° de inscrição Beneficiário Final | N | CPF/CNPJ do Beneficiário Final (Nota 30) |
+| 170-209 | 40 | Nome do Beneficiário Final | A | Nome do Beneficiário Final |
+| 210-240 | 31 | Reservado (uso Banco) | - | Brancos |
+
+### 4.5. Segmento R (Opcional)
+Usado para informar 2º e 3º desconto e multa.
+
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :----------------------------- | :-- | :----------------------------------- |
+| 018-018 | 1 | Código do desconto 2 | N | (Nota 23) `0`, `1` ou `2` |
+| 019-026 | 8 | Data do desconto 2 | N | `DDMMAAAA` |
+| 027-041 | 15 | Valor/Percentual a ser concedido | N | 2 decimais s/ separador |
+| 042-042 | 1 | Código do desconto 3 | N | (Nota 23) `0`, `1` ou `2` |
+| 043-050 | 8 | Data do desconto 3 | N | `DDMMAAAA` |
+| 051-065 | 15 | Valor/Percentual a ser concedido | N | 2 decimais s/ separador |
+| 066-066 | 1 | Código da multa | N | `1`=Valor fixo, `2`=Percentual (Nota 32) |
+| 067-074 | 8 | Data da multa | N | `DDMMAAAA` (Nota 32) |
+| 075-089 | 15 | Valor/Percentual a ser aplicado | N | 2 decimais s/ separador |
+| 100-139 | 40 | Mensagem 3 | A | (Nota 33) |
+| 140-179 | 40 | Mensagem 4 | A | (Nota 33) |
+
+### 4.6. Segmento S (Opcional)
+Usado para mensagens livres na ficha de compensação.
+
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :---------------------------- | :-- | :-------------------------------------------------------------------------------------------- |
+| 018-018 | 1 | Identificação da impressão | N | (Nota 34) `1`=Formulário Especial, `2`=Mensagem na Ficha de Compensação |
+| *Se Impressão = 1* | | | | |
+| 019-020 | 2 | Número da linha a ser impressa | N | `01` a `22` (Nota 35) |
+| 022-121 | 100 | Mensagem a ser impressa | A | Texto da mensagem |
+| *Se Impressão = 2* | | | | |
+| 019-058 | 40 | Mensagem 5 | A | Texto da mensagem |
+| 059-098 | 40 | Mensagem 6 | A | Texto da mensagem |
+| ... | | ... | | ... e assim por diante para Mensagem 7, 8, 9. |
+
+### 4.7. Segmento Y-03 (Opcional - PIX)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :----------------------------- | :-- | :------------------------------------------------------------------------------------------------- |
+| 018-019 | 2 | Identificação Registro | N | `03` (Nota 42) |
+| 081-081 | 1 | Tipo de Chave Pix | A | (Nota 49) `1`=CPF, `2`=CNPJ, `3`=Celular, `4`=E-Mail, `5`=EVP |
+| 082-158 | 77 | Chave Pix | A | Chave DICT do beneficiário (Nota 50) |
+| 159-193 | 35 | Código identificação do QR Code | A | **TXID** (Nota 52) |
+
+### 4.8. Segmento Y-53 (Opcional - Pagamento)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :----------------------------- | :-- | :------------------------------------------------------------------- |
+| 018-019 | 2 | Identificação Registro | N | `53` (Nota 42) |
+| 020-021 | 2 | Identificação de tipo de Pagamento | N | (Nota 46) `01`=Qualquer valor, `02`=Entre min/max, `03`=Não divergente |
+| 022-023 | 2 | Quantidade de Pagamentos Possíveis | N | `00` a `99` (Nota 47) |
+| 024-024 | 1 | Tipo de valor Informado (Máximo) | N | (Nota 48) `1`=Percentual, `2`=Valor |
+| 025-039 | 15 | Valor Máximo / % Percentual | N | |
+| 040-040 | 1 | Tipo de valor Informado (Mínimo) | N | (Nota 48) `1`=Percentual, `2`=Valor |
+| 041-055 | 15 | Valor Mínimo / % Percentual | N | |
+
+### 4.9. Trailer de Lote (Remessa)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :-------------------------------- | :-- | :------------------------------------------------ |
+| 001-007 | 7 | Banco e Lote | N | |
+| 008-008 | 1 | Tipo de registro | N | `5` |
+| 018-023 | 6 | Quantidade de registros do lote | N | Total de registros no lote (Header+Detalhes+Trailer) (Nota 37) |
+| 024-240 | 217 | Reservado (uso Banco) | A | Brancos |
+
+### 4.10. Trailer de Arquivo (Remessa)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações |
+| :--------------- | :--- | :---------------------------------- | :-- | :----------------------------------------------------- |
+| 001-007 | 7 | Banco e Lote (`9999`) | N | |
+| 008-008 | 1 | Tipo de registro | N | `9` |
+| 018-023 | 6 | Quantidade de lotes do arquivo | N | Total de lotes no arquivo (`1`) |
+| 024-029 | 6 | Quantidade de registros do arquivo | N | Total de registros no arquivo (Headers+Detalhes+Trailers) |
+| 030-240 | 211 | Reservado (uso Banco) | A | Brancos |
+
+---
+
+## 5. Layout do Arquivo de Retorno
+### 5.1. Header de Arquivo (Retorno)
+Estrutura similar ao da Remessa, com `Código remessa / retorno` (pos 143) = `2`.
+
+### 5.2. Header de Lote (Retorno)
+Estrutura similar ao da Remessa, com `Tipo de operação` (pos 009) = `T`.
+
+### 5.3. Segmento T (Obrigatório)
+Contém os dados principais do título no retorno.
+
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :----------------------------- | :-- | :------------------------------------------------------------------------------------------------- |
+| 016-017 | 2 | Código de movimento (ocorrência) | N | **(Nota 40)** `02`=Entrada Confirmada, `03`=Rejeitada, `06`=Liquidação, `09`=Baixa |
+| 041-053 | 13 | Identificação do boleto no Banco | N | **Nosso Número** (Nota 15) |
+| 078-092 | 15 | Valor nominal do boleto | N | 2 decimais s/ separador (Nota 18) |
+| 144-183 | 40 | Nome do Pagador | A | Nome do Pagador |
+| 194-208 | 15 | Valor da Tarifa/Custas | N | 2 decimais s/ separador |
+| 209-218 | 10 | Identificação para rejeições... | A | Contém até 5 ocorrências de 2 dígitos cada. (Notas 40-A, 40-C) |
+
+### 5.4. Segmento U (Obrigatório)
+Contém os valores da transação de retorno.
+
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :----------------------------- | :-- | :-------------------------------------------------------------------------------- |
+| 018-032 | 15 | Juros / Multa / Encargos | N | 2 decimais s/ separador |
+| 033-047 | 15 | Valor do desconto concedido | N | 2 decimais s/ separador |
+| 048-062 | 15 | Valor do Abatimento | N | 2 decimais s/ separador |
+| 078-092 | 15 | Valor pago pelo Pagador | N | 2 decimais s/ separador |
+| 093-107 | 15 | Valor liquido a ser creditado | N | 2 decimais s/ separador |
+| 138-145 | 8 | Data da ocorrência | N | `DDMMAAAA` (Data do evento: pagamento, baixa, etc.) |
+| 146-153 | 8 | Data da efetivação do crédito | N | `DDMMAAAA` |
+| 154-157 | 4 | Código da ocorrência do Pagador | N | **(Nota 41)** Ex: `0101` (Não recebeu mercadoria), `0301` (Vencimento correto é) |
+| 158-165 | 8 | Data da ocorrência do Pagador | N | `DDMMAAAA` |
+| 166-180 | 15 | Valor da ocorrência do Pagador | N | 2 decimais s/ separador |
+| 181-210 | 30 | Complemento da ocorrência | A | Complemento da alegação do pagador |
+
+### 5.5. Segmento Y-03 (Opcional - PIX, Retorno)
+Retorna a URL do QR Code para boletos registrados com PIX.
+
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :----------------------------- | :-- | :--------------------------------------------- |
+| 018-019 | 2 | Identificação Registro | N | `03` (Nota 42) |
+| 082-158 | 77 | Chave Pix / URL do QR Code | A | URL gerada para o QR Code (Nota 51) |
+| 159-193 | 35 | Código identificação do QR Code | A | **TXID** (Nota 52) |
+
+### 5.6. Segmento Y-04 (Opcional - Cheques)
+Usado para informar dados de pagamento com cheque.
+
+### 5.7. Trailer de Lote (Retorno)
+| Posição (De-Até) | Tam. | Campo | A/N | Conteúdo / Observações (Notas) |
+| :--------------- | :--- | :------------------------------------- | :-- | :----------------------------------- |
+| 018-023 | 6 | Quantidade de registros do lote | N | Total de registros no lote (Nota 37) |
+| 024-029 | 6 | Quantidade Boletos cobrança simples | N | (Nota 38) |
+| 030-046 | 17 | Valor total dos Boletos cobrança simples | N | 2 decimais s/ separador (Nota 38) |
+| ... | | ... | | Outros totais para cobrança vinculada, caucionada, descontada |
+
+### 5.8. Trailer de Arquivo (Retorno)
+Estrutura idêntica ao da Remessa.
+
+---
+
+## 6. Detalhamento das Notas Principais
+
+### Nota 15: Cálculo do Dígito Verificador do Nosso Número (Módulo 11)
+
+1.  **Multiplicar:** Multiplique cada dígito do número (sem o DV), da direita para a esquerda, pela sequência `2, 3, 4, 5, 6, 7, 8, 9, 2, 3...`.
+2.  **Somar:** Some os resultados de todas as multiplicações.
+3.  **Dividir:** Divida a soma por 11 e obtenha o **resto**.
+4.  **Subtrair:** `Dígito = 11 - resto`.
+5.  **Exceções:**
+    *   Se o resto for `0` ou `1`, o dígito verificador será `0`.
+    *   Se o resto for `10`, o dígito verificador será `1`.
+
+**Exemplo:** Número `3147578`
+-   (8\*2)+(7\*3)+(5\*4)+(7\*5)+(4\*6)+(1\*7)+(3\*8) = 16+21+20+35+24+7+24 = 147
+-   147 / 11 = 13, com **resto 4**.
+-   Dígito = 11 - 4 = **7**.
+-   Nosso Número com DV: `31475787`.
+
+### Nota 40-A e 40-C: Códigos de Rejeição, Liquidação e Baixa
+
+-   **Rejeições (Mov. 03, 26, 30):** O campo `Identificação para rejeições` (Segmento T, pos 209-218) conterá códigos de 2 dígitos. Ex:
+    -   `04`: Código de movimento não permitido para carteira.
+    -   `08`: Nosso número inválido.
+    -   `10`: Carteira inválida.
+    -   `16`: Data de vencimento inválida.
+    -   `45`: Nome do Pagador não informado.
+    -   `P1`: Registrado com QR Code Pix.
+    -   `P2`: Registrado sem QR Code Pix.
+    -   `B6`: Instrução recusada, convênio com garantia em conta Escrow.
+-   **Liquidação (Mov. 06, 17, 93, 94):** Indica o meio pelo qual o boleto foi pago.
+    -   `01`: Por saldo
+    -   `03`: No próprio banco
+    -   `04`: Compensação eletrônica
+    -   `08`: Em cartório
+    -   `61`: **Liquidação Por Pagamento PIX**
+    -   `93`: Pagamento do boleto recebido
+-   **Baixa (Mov. 09):** Indica o motivo da baixa.
+    -   `09`: Comandada banco
+    -   `10`: Comandada cliente arquivo
+    -   `12`: Decurso prazo – cliente
+    -   `92`: **Pagamento PIX**
+
+### Nota 41: Ocorrências / Alegações do Pagador
+
+São códigos de 4 dígitos retornados no Segmento U (pos 154-157) para detalhar uma alegação do pagador.
+-   `0101`: Pagador alega que não recebeu a mercadoria.
+-   `0201`: Pagador alega que não recebeu a fatura.
+-   `0301`: Pagador alega que o vencimento correto é: (a data virá no campo `Data da ocorrência do Pagador`).
+-   `0501`: Pagador alega que tem desconto ou abatimento de: (o valor virá no campo `Valor da ocorrência do Pagador`).
+-   `0601`: Pagador está em regime de concordata.
+-   `0602`: Pagador está em regime de falência.
