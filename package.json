@@ -12,6 +12,11 @@
       "require": "./dist/itau-400.js"
     }
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest"
