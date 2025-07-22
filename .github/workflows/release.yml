@@ -7,16 +7,17 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+# 👇 Grant necessary GITHUB_TOKEN permissions here
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+  issues: write
+
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    # 👇 Grant necessary GITHUB_TOKEN permissions here
-    permissions:
-      contents: write
-      pull-requests: write
-      packages: write
-      issues: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
