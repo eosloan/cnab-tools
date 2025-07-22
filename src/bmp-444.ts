@@ -475,6 +475,42 @@ export function convertToItau400Remessa(
       .slice(0, length);
   };
 
+  /**
+   * Mapeamento de espécie de título BMP 444 (campo 29) para espécie de título Itaú 400 (Tabela 10)
+   * Fonte BMP: @parse-cnab-444-bmp.mdc 4.2
+   * Fonte Itaú: @parse-cnab-400-itau.mdc Tabela 10
+   */
+  const titleSpecies: Record<string, string> = {
+    // BMP: '01' Duplicata        -> Itaú: '01' Duplicata Mercantil
+    "01": "01",
+    // BMP: '02' Nota Promissória -> Itaú: '02' Nota Promissória
+    "02": "02",
+    // BMP: '06' Nota Promissória Física -> Itaú: '12' Nota Promissória Rural
+    "06": "12",
+    // BMP: '07' Cartolas Bancárias -> Itaú: '05' Recibo
+    "07": "05",
+    // BMP: '14' Duplicata de Serviço Física -> Itaú: '04' Duplicata de Serviço
+    "14": "04",
+    // BMP: '51' Cheque -> Itaú: '03' Cheque
+    "51": "03",
+    // BMP: '60' Contrato -> Itaú: '20' Contrato
+    "60": "20",
+    // BMP: '61' Contrato Físico -> Itaú: '20' Contrato
+    "61": "20",
+    // BMP: '62' Confissões de Dívida -> Itaú: '99' Outros
+    "62": "99",
+    // BMP: '64' Assunção de Dívida -> Itaú: '99' Outros
+    "64": "15",
+    // BMP: '67' Operações Cartão de Crédito Digital -> Itaú: '99' Outros
+    "67": "99",
+    // BMP: '70' CCB Pré Digital -> Itaú: '99' Outros
+    "70": "99",
+    // BMP: '71' CCB Pré Balcão -> Itaú: '99' Outros
+    "71": "99",
+    // BMP: '72' CCB Pré Cetip -> Itaú: '99' Outros
+    "72": "99",
+  };
+
   // Mapeamento dos registros
   return entries.map((bmpEntry, index) => {
     if (bmpEntry.recordType === "0") {
@@ -507,6 +543,14 @@ export function convertToItau400Remessa(
       const agency = fallback?.detail1?.agency || "";
       const account = fallback?.detail1?.account || "";
 
+      const [
+        address = "",
+        number = "",
+        neighborhood = "",
+        city = "",
+        state = "",
+      ] = bmpEntry.payerAddress.split(",").map((s) => s.trim());
+
       // DETALHE
       const detail: ItauCnab400RemessaDetail1 = {
         recordType: "1",
@@ -519,26 +563,26 @@ export function convertToItau400Remessa(
         blanks1: "",
         instruction: "",
         yourNumber: bmpEntry.participantControlNumber || "",
-        ourNumber: "", // Não existe em BMP
+        ourNumber: fallback?.detail1?.ourNumber || "", // Não existe em BMP
         currencyQuantity: "",
-        walletNumber: "", // Não existe em BMP
+        walletNumber: fallback?.detail1?.walletNumber || "", // Não existe em BMP
         bankUse: "",
-        walletCode: "", // Não existe em BMP
+        walletCode: fallback?.detail1?.walletCode || "", // Não existe em BMP
         occurrenceCode: bmpEntry.occurrenceId || "",
         documentNumber: bmpEntry.documentNumber || "",
         dueDate: bmpEntry.dueDate ? formatDate(bmpEntry.dueDate) : "",
         amount: bmpEntry.faceValue ? formatValue(bmpEntry.faceValue) : "",
         bankCode: bmpEntry.chargingBankCode || "341",
         chargingAgency: bmpEntry.depositaryAgency || "",
-        species: bmpEntry.titleSpecies || "",
-        acceptance: "", // Não existe em BMP
+        species: titleSpecies[bmpEntry.titleSpecies] || "",
+        acceptance: "A", // Não existe em BMP
         issueDate: bmpEntry.issueDate ? formatDate(bmpEntry.issueDate) : "",
-        instruction1: "",
-        instruction2: "",
-        dailyInterest: "", // Não existe em BMP
-        discountDate: "", // Não existe em BMP
-        discountAmount: "", // Não existe em BMP
-        iofAmount: "", // Não existe em BMP
+        instruction1: fallback?.detail1?.instruction1 || "",
+        instruction2: fallback?.detail1?.instruction2 || "",
+        dailyInterest: fallback?.detail1?.dailyInterest || "", // Não existe em BMP
+        discountDate: fallback?.detail1?.discountDate || "", // Não existe em BMP
+        discountAmount: fallback?.detail1?.discountAmount || "", // Não existe em BMP
+        iofAmount: fallback?.detail1?.iofAmount || "", // Não existe em BMP
         rebateAmount: bmpEntry.discountValue
           ? formatValue(bmpEntry.discountValue)
           : "",
@@ -546,15 +590,19 @@ export function convertToItau400Remessa(
         payerTaxId: bmpEntry.payerId || "",
         payerName: formatString(bmpEntry.payerName || "", 30),
         blanks2: "",
-        payerAddress: formatString(bmpEntry.payerAddress || "", 40),
-        payerNeighborhood: "", // Não existe em BMP
+        payerAddress:
+          [address, number].join(" ").trim() ||
+          fallback?.detail1?.payerAddress ||
+          "",
+        payerNeighborhood:
+          neighborhood || fallback?.detail1?.payerNeighborhood || "", // Não existe em BMP
         payerZipCode: bmpEntry.payerZipCode || "",
-        payerCity: "", // Não existe em BMP
-        payerState: "", // Não existe em BMP
-        drawerGuarantor: "", // Não existe em BMP
+        payerCity: city || fallback?.detail1?.payerCity || "", // Não existe em BMP
+        payerState: state || fallback?.detail1?.payerState || "", // Não existe em BMP
+        drawerGuarantor: fallback?.detail1?.drawerGuarantor || "", // Não existe em BMP
         blanks3: "",
-        interestStartDate: "", // Não existe em BMP
-        protestDays: "", // Não existe em BMP
+        interestStartDate: fallback?.detail1?.interestStartDate || "", // Não existe em BMP
+        protestDays: fallback?.detail1?.protestDays || "", // Não existe em BMP
         blanks4: "",
         sequentialNumber: String(index + 1),
       };

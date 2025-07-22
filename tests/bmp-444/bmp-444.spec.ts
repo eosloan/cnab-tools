@@ -7,6 +7,7 @@ import {
   generate,
   convertToItau400Remessa,
 } from "../../src/bmp-444";
+import { generate as generateItau400 } from "../../src/itau-400";
 
 const headerLine =
   "01REMESSA01COBRANCA       00000000000045684942COMPANY                       611PAULISTA S.A.  070525        MX0000014                                                                                                                                                                                                                                                                                                                                 000001";
@@ -97,11 +98,36 @@ describe("bmp-444", () => {
     expect(normalize(generated)).toBe(normalize(original));
   });
 
-  it("converts to itau 400 remessa", () => {
-    const lines = [headerLine, detailLine, trailerLine];
-    const entries = parse(lines.join("\n")).entries;
-    const itauEntries = convertToItau400Remessa(entries);
-    expect(itauEntries.length).toBe(3);
-    expect(itauEntries[0].recordType).toBe("0");
+  it("converts to itau 400 remessa", async () => {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const original = await fs.readFile(path.resolve(__dirname, "CB210701.REM"));
+    const { entries: bmpEntries } = parse(original);
+    const itauEntries = convertToItau400Remessa(bmpEntries, {
+      header: { agency: "1234", account: "56789" },
+      detail1: {
+        beneficiaryTaxIdType: "02",
+        beneficiaryTaxId: "XXXXXXXX0001XX",
+        agency: "1234",
+        account: "56789",
+        walletNumber: "109",
+        walletCode: "I",
+        instruction1: "46",
+        instruction2: "46",
+        drawerGuarantor: "SEC FIN XXIV DEB BSF",
+      },
+    });
+    const generated = generateItau400(itauEntries);
+    const cmpItau = await fs.readFile(
+      path.resolve(__dirname, "CB210701_ITAU.txt"),
+      "utf-8",
+    );
+
+    // Assert: output is exactly the same as input (ignoring trailing newlines)
+    // Normalize both to CRLF and trim trailing newlines for strict comparison
+    const normalize = (s: string) =>
+      s.replace(/\r?\n/g, "\r\n").replace(/(\r\n)+$/g, "");
+
+    expect(normalize(generated)).toBe(normalize(cmpItau));
   });
 });
