@@ -1,23 +1,15 @@
 {
   "name": "@eosloan/cnab-tools",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "Biblioteca para trabalhar com CNAB dos principais bancos do Brasil",
   "exports": {
-    "import": {
-      "./bmp-444": {
-        "node": "./dist/bmp-444.mjs"
-      },
-      "./itau-400": {
-        "node": "./dist/itau-400.mjs"
-      }
+    "./bmp-444": {
+      "import": "./dist/bmp-444.mjs",
+      "require": "./dist/bmp-444.js"
     },
-    "require": {
-      "./bmp-444": {
-        "node": "./dist/bmp-444.js"
-      },
-      "./itau-400": {
-        "node": "./dist/itau-400.js"
-      }
+    "./itau-400": {
+      "import": "./dist/itau-400.mjs",
+      "require": "./dist/itau-400.js"
     }
   },
   "scripts": {
