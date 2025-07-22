@@ -21,7 +21,7 @@
     "build": "tsup",
     "test": "vitest",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish --access public"
   },
   "repository": {
     "type": "git",
