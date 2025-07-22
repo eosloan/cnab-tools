@@ -9,7 +9,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 # 👇 Grant necessary GITHUB_TOKEN permissions here
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
