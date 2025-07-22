@@ -19,7 +19,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest"
+    "test": "vitest",
+    "version": "changeset version",
+    "release": "npm run build && changeset publish"
   },
   "repository": {
     "type": "git",
@@ -32,6 +34,7 @@
   },
   "homepage": "https://github.com/eosloan/cnab-tools#readme",
   "devDependencies": {
+    "@changesets/cli": "^2.29.5",
     "@eslint/js": "^9.31.0",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^24.0.15",
