@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.2
+
+### Patch Changes
+
+- 42498ba: Adicionado index export para compatibilidade
+
 ## 0.1.1
 
 ### Patch Changes
