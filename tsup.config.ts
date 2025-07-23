@@ -3,7 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig([
   // Node.js build (CJS + ESM)
   {
-    entry: ["src/bmp-444.ts", "src/itau-400.ts"],
+    entry: ["src/bmp-444.ts", "src/itau-400.ts", "src/index.ts"],
     outDir: "dist",
     format: ["esm", "cjs"],
     target: "node22",
@@ -15,7 +15,7 @@ export default defineConfig([
 
   // Browser build (bundled ESM)
   {
-    entry: ["src/bmp-444.ts", "src/itau-400.ts"],
+    entry: ["src/bmp-444.ts", "src/itau-400.ts", "src/index.ts"],
     outDir: "dist/browser",
     format: ["esm"],
     target: "es2018",
