@@ -104,12 +104,12 @@ describe("bmp-444", () => {
     const original = await fs.readFile(path.resolve(__dirname, "CB210701.REM"));
     const { entries: bmpEntries } = parse(original);
     const itauEntries = convertToItau400Remessa(bmpEntries, {
-      header: { agency: "1234", account: "56789" },
+      header: { agency: "8499", account: "32972" },
       detail1: {
         beneficiaryTaxIdType: "02",
         beneficiaryTaxId: "XXXXXXXX0001XX",
-        agency: "1234",
-        account: "56789",
+        agency: "8499",
+        account: "32972",
         walletNumber: "109",
         walletCode: "I",
         instruction1: "46",
@@ -118,6 +118,8 @@ describe("bmp-444", () => {
       },
     });
     const generated = generateItau400(itauEntries);
+    await fs.writeFile("itau2.txt", generated);
+
     const cmpItau = await fs.readFile(
       path.resolve(__dirname, "CB210701_ITAU.txt"),
       "utf-8",

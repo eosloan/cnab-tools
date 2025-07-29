@@ -1,0 +1,1168 @@
+
+# Introdução Rápida ao Formato CNAB 400 Bradesco
+
+O **CNAB 400 (Centro Nacional de Automação Bancária - Padrão 400)** é um padrão de arquivo de texto utilizado para a troca de informações de cobrança entre a empresa (Beneficiário) e o Bradesco. O "400" refere-se ao fato de que cada linha (registro) do arquivo possui um tamanho fixo de **400 bytes (ou 400 caracteres)**.
+
+Este formato é posicional, o que significa que cada informação (como agência, conta, nosso número, valor, etc.) ocupa uma posição inicial e final exata dentro da linha de 400 bytes.
+
+### Características Principais
+
+*   **Formato:** Arquivo de Texto (Padrão CNAB 400).
+*   **Tamanho do Registro:** Cada linha tem exatamente 400 bytes.
+*   **Organização:** Sequencial. Os arquivos são organizados com um registro de cabeçalho (Header) no início, seguido por um ou mais registros de detalhe (Transações) e finalizado com um registro de rodapé (Trailer).
+*   **Codificação de Caracteres:**
+    *   **Plataforma Baixa (Windows/Linux):** Padrão **ASCII**, onde cada registro termina com um delimitador de fim de linha (CR/LF, ou `0D 0A` em hexadecimal).
+    *   **Sistema Host (Mainframe):** Padrão **EBCDIC**.
+
+### Estrutura do Arquivo
+
+Existem dois tipos principais de arquivos no fluxo de cobrança:
+
+#### 1. Arquivo-Remessa (Envio para o Banco)
+
+É o arquivo que a empresa gera e envia ao Bradesco para registrar boletos, solicitar baixas, alterar vencimentos, etc. Sua estrutura básica é:
+
+*   **Registro 0 - Header Label:** A primeira linha do arquivo. Identifica a empresa, o tipo de arquivo (remessa) e a data de geração.
+*   **Registro 1 - Transação:** O corpo do arquivo. Cada linha representa uma instrução para um boleto específico (ex: registrar um novo título).
+*   **Registros Opcionais (2, 3, 6, 7):** Podem ser usados para incluir mensagens adicionais, rateio de crédito, informações para débito automático ou dados do beneficiário final.
+*   **Registro 9 - Trailer:** A última linha do arquivo. Contém totais e informações de fechamento para garantir a integridade do arquivo.
+
+#### 2. Arquivo-Retorno (Recebimento do Banco)
+
+É o arquivo que o Bradesco gera e disponibiliza para a empresa. Ele informa o que aconteceu com os boletos enviados anteriormente (confirmação de registro, liquidações, baixas, rejeições, etc.). Sua estrutura é similar:
+
+*   **Registro 0 - Header Label:** Identifica o arquivo como um retorno do banco.
+*   **Registro 1 - Transação:** O corpo do arquivo. Cada linha informa o status de um boleto (ex: título liquidado, entrada confirmada, entrada rejeitada com o motivo).
+*   **Registros Opcionais (3, 4):** Usados para detalhar rateios de crédito ou informações de QR Code PIX.
+*   **Registro 9 - Trailer:** A última linha, com totais de controle do arquivo de retorno.
+
+### Nomenclatura Importante
+
+Conforme as circulares do BACEN, a nomenclatura foi atualizada:
+*   **Cedente** agora é chamado de **Beneficiário**.
+*   **Sacado** agora é chamado de **Pagador**.
+
+---
+
+# Layout do Arquivo-Remessa (CNAB 400)
+
+### Registro Header Label
+
+**Descrição de Registro - Tamanho 400 Bytes**
+- **A** - Alfanumérico - Conteúdo em Caixa Alta (Letras Maiúsculas)
+- **N** - Numérico
+
+| Posição De/a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | 0 | | X |
+| 002 a 002 | Identificação do Arquivo-Remessa | 001 | 1 | | X |
+| 003 a 009 | Literal Remessa | 007 | REMESSA | X | |
+| 010 a 011 | Código de Serviço | 002 | 01 | | X |
+| 012 a 026 | Literal Serviço | 015 | COBRANCA | X | |
+| 027 a 046 | Código da Empresa | 020 | Será fornecido pelo Bradesco, quando do cadastramento | | X |
+| 047 a 076 | Nome da Empresa | 030 | Razão Social | X | |
+| 077 a 079 | Número do Bradesco na Câmara de Compensação | 003 | 237 | | X |
+| 080 a 094 | Nome do Banco por Extenso | 015 | Bradesco | X | |
+| 095 a 100 | Data da Gravação do Arquivo | 006 | DDMMAA | | X |
+| 101 a 108 | Branco | 008 | Branco | X | |
+| 109 a 110 | Identificação do Sistema | 002 | MX | X | |
+| 111 a 117 | Nº Sequencial de Remessa | 007 | Sequencial | | X |
+| 118 a 394 | Branco | 277 | Branco | X | |
+| 395 a 400 | Nº Sequencial do Registro de Um em Um | 006 | 000001 | | X |
+
+### Layout do Arquivo-Remessa - Registro de Transação - Tipo 1
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | 1 | | X |
+| 002 a 006 | Agência de Débito (opcional) | 005 | Código da Agência do Pagador Exclusivo para Débito em Conta | | X |
+| 007 a 007 | Dígito da Agência de Débito (opcional) | 001 | Dígito da Agência do Pagador | X | |
+| 008 a 012 | Razão da Conta-Corrente (opcional) | 005 | Razão da Conta do Pagador | | X |
+| 013 a 019 | Conta-Corrente (opcional) | 007 | Número da Conta do Pagadora | | X |
+| 020 a 020 | Dígito da Conta-Corrente (opcional) | 001 | Dígito da Conta do Pagador | X | |
+| 021 a 037 | Identificação da Empresa Beneficiária no Banco | 017 | Zero, Carteira, Agência e Conta - Corrente | | X |
+| 038 a 062 | Nº Controle do Participante | 025 | Uso da Empresa | X | |
+| 063 a 065 | Código do Banco a ser debitado na Câmara de Compensação | 003 | Nº do Banco "237" | | X |
+| 066 a 066 | Campo de Multa | 001 | Se = 2 considerar percentual de multa. Se = 0, sem multa. | | X |
+| 067 a 070 | Percentual de Multa | 004 | Percentual de multa a ser considerado | | X |
+| 071 a 081 | Identificação do Título no Banco | 11 | Número Bancário para Cobrança Com Registro Vide Obs. **Pág. 16** | | X |
+| 082 a 082 | Dígito de Autoconferência do Número Bancário | 001 | Digito N/N Vide Obs. **Pág. 16** | X | |
+| 083 a 092 | Desconto Bonificação por dia | 010 | Valor do desconto bonif./dia. | | X |
+| 093 a 093 | Condição para Emissão da Papeleta de Cobrança | 001 | 1 = Banco emite e processa o registro. 2 = Cliente emite e o Banco somente processa o registro. Se informado diferente de 1 ou 2 (zeros ou Brancos), será verificado a condição do cadastro, para identificar, a responsabilidade da emissão do boleto. | | X |
+| 094 a 094 | Ident. se emite Boleto para Débito Automático | 001 | N= Não registra na cobrança. Diferente de N registra e emite Boleto. | X | |
+| 095 a 104 | Identificação da Operação do Banco | 010 | Brancos | | X |
+| 105 a 105 | Indicador Rateio Crédito (opcional) | 001 | "R" | X | |
+| 106 a 106 | Endereçamento para Aviso do Débito Automático em Conta-Corrente (opcional) | 001 | | | X |
+| 107 a 108 | Quantidade de Pagamentos | 002 | | | X |
+| 109 a 110 | Identificação da Ocorrência | 002 | Códigos de Ocorrência | | X |
+| 111 a 120 | Nº do Documento | 010 | Documento | X | |
+| 121 a 126 | Data do Vencimento do Título | 006 | DDMMAA | | X |
+| 127 a 139 | Valor do Título | 013 | Valor do Título (preencher sem ponto e sem vírgula) | | X |
+| 140 a 142 | Banco Encarregado da Cobrança | 003 | Preencher com zeros | | X |
+| 143 a 147 | Agência Depositária | 005 | Preencher com zeros | | X |
+| 148 a 149 | Espécie de Título | 002 | 01-Duplicata<br>02-Nota Promissória<br>03-Nota de Seguro<br>05-Recibo<br>10-Letras de Câmbio<br>11-Nota de Débito<br>12-Duplicata de Serv.<br>31-Cartão de Crédito<br>32-Boleto de Proposta<br>33- Depósito e Aporte<br>99-Outros | | X |
+| 150 a 150 | Identificação | 001 | Sempre = N | X | |
+| 151 a 156 | Data da Emissão do Título | 006 | DDMMAA | | X |
+| 157 a 158 | 1ª Instrução | 002 | Vide Obs. | | X |
+| 159 a 160 | 2ª Instrução | 002 | Vide Obs. | | X |
+| 161 a 173 | Valor a ser Cobrado por Dia de Atraso | 013 | Mora por Dia de Atraso Vide obs. | | X |
+| 174 a 179 | Data Limite P/Concessão de Desconto | 006 | DDMMAA | | X |
+| 180 a 192 | Valor do Desconto | 013 | Valor Desconto | | X |
+| 193 a 205 | Valor do IOF | 013 | Valor do IOF | | X |
+| 206 a 218 | Valor do Abatimento a ser Concedido ou Cancelado | 013 | Valor Abatimento | | X |
+| 219 a 220 | Identificação do Tipo de Inscrição do Pagador | 002 | 01-CPF<br>02-CNPJ | | X |
+| 221 a 234 | Nº Inscrição do Pagador | 014 | CNPJ/CPF (Preenchimento obrigatório) | | X |
+| 235 a 274 | Nome do Pagador | 040 | Nome do Pagador | X | |
+| 275 a 314 | Endereço Completo | 040 | Endereço do Pagador | X | |
+| 315 a 326 | 1ª Mensagem | 012 | | X | |
+| 327 a 331 | CEP | 005 | CEP Pagador | | X |
+| 332 a 334 | Sufixo do CEP | 003 | Sufixo | | X |
+| 335 a 394 | Beneficiário Final ou 2ª Mensagem | 060 | Decomposição | X | |
+| 395 a 400 | Nº Sequencial do Registro | 006 | Nº Sequencial do Registro | | X |
+
+### Layout do Arquivo-Remessa - Registro de Transação -Tipo 2 (Registro Opcional)
+
+**Layout para Cobrança com Registro e Emissão do Boleto pelo Banco**
+**Descrição de Registro - Tamanho 400 Bytes**
+- **A** - Alfanumérico - Conteúdo em Caixa Alta (Letras Maiúsculas)
+- **N** - Numérico
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Tipo Registro | 001 | 2 | | X |
+| 002 a 081 | Mensagem 1 | 080 | Mensagem | X | |
+| 082 a 161 | Mensagem 2 | 080 | Mensagem | X | |
+| 162 a 241 | Mensagem 3 | 080 | Mensagem | X | |
+| 242 a 321 | Mensagem 4 | 080 | Mensagem | X | |
+| 322 a 327 | Data-Limite para Concessão de Desconto 2 | 006 | DDMMAA | | X |
+| 328 a 340 | Valor do Desconto | 013 | Valor Desconto | | X |
+| 341 a 346 | Data-Limite para Concessão de Desconto 3 | 006 | DDMMAA | | X |
+| 347 a 359 | Valor do Desconto | 013 | Valor do Desconto | | X |
+| 360 a 366 | Reserva | 007 | Filler | X | |
+| 367 a 369 | Carteira | 003 | Nº da Carteira | | X |
+| 370 a 374 | Agência | 005 | Código da Agência Beneficiário | | X |
+| 375 a 381 | Conta-Corrente | 007 | Nº da Conta-Corrente | | X |
+| 382 a 382 | Dígito C/C | 001 | DAC C/C | X | |
+| 383 a 393 | Nosso Número | 011 | Número Bancário | | X |
+| 394 a 394 | DAC Nosso Número | 001 | Dígito | X | |
+| 395 a 400 | Nº Sequencial de Registro | 006 | Nº Sequencial de Registro | | X |
+
+**Nota 1:** para que o sistema considere uma linha para cada mensagem, deverá ser utilizado, no mínimo, 41 caracteres para cada intervalo de 80 posições.
+**Exemplo:** posições 002 a 081, deverá ser preenchido até a posição 041.
+
+**Nota 2:** implementamos o Leiaute Registro Tipo 2, para permitir aos clientes beneficiários conceder mais 2 (dois) novos descontos, podendo ser informados nas posições 322 a 359. A concessão do desconto disponível no Leiaute Registro Transação Tipo 1 permanece inalterada.
+
+### Layout do Arquivo-Remessa - Registro de Transação-Tipo 3 (Rateio de Crédito - opcional)
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | Fixo "3" | | X |
+| 002 a 017 | Identificação da Empresa no Banco | 016 | Carteira, Agência, Conta-Corrente | | X |
+| 018 a 029 | Identificação Título no Banco | 012 | Número Bancário | | X |
+| 030 a 030 | Código Para Cálculo do Rateio | 001 | "1"=Valor Cobrado<br>"2"=Valor do Registro<br>"3"=Rateio pelo Menor Valor | | X |
+| 031 a 031 | Tipo de Valor Informado | 001 | "1"= Percentual<br>"2" = Valor | | X |
+| 032 a 043 | Filler | 012 | Brancos | X | |
+| 044 a 046 | Código do Banco para Crédito do 1º Beneficiário | 003 | Fixo "237" | | X |
+| 047 a 051 | Código da Agência para Crédito do 1º Beneficiário | 005 | Código da Agência | | X |
+| 052 a 052 | Dígito da Agência para Crédito do 1º Beneficiário | 001 | Dígito da Agência | X | |
+| 053 a 064 | Número da Conta-Corrente para Crédito do 1º Beneficiário | 012 | Número da Conta-Corrente do Beneficiário | | X |
+| 065 a 065 | Dígito da Conta-Corrente para Crédito do 1º Beneficiário | 001 | Dígito da Conta-Corrente | X | |
+| 066 a 080 | Valor, ou Percentual para Rateio | 015 | Valor do rateio, de acordo com o tipo (percentual ou valor) | | X |
+| 081 a 120 | Nome do 1º Beneficiário | 040 | Nome do 1º Beneficiário | X | |
+| ... | ... | ... | ... | ... | ... |
+| 287 a 298 | Número da Conta-Corrente para Crédito do 3º Beneficiário | 012 | Número da Conta-Corrente do Beneficiário | | X |
+| 299 a 299 | Dígito da Conta-Corrente para Crédito do 3º Beneficiário | 001 | Dígito da Conta-Corrente | X | |
+| 300 a 314 | Valor ou Percentual para Rateio | 015 | Valor do rateio, de acordo com o tipo (percentual ou valor) | | X |
+| 315 a 354 | Nome do 3º Beneficiário | 040 | Nome do 3º Beneficiário | X | |
+| 355 a 385 | Filler | 031 | Brancos | X | |
+| 386 a 391 | Parcela | 006 | Identificação da Parcela | | X |
+| 392 a 394 | Floating para 3º Beneficiário | 003 | Quantidade de Dias para Crédito do Beneficiário. | | X |
+| 395 a 400 | Número Sequencial do Registro | 006 | Número Sequencial do Registro | | X |
+
+### Layout do Arquivo-Remessa - Registro de Transação-Tipo 6
+
+**Múltiplas Transferências / Cadastro e Autorização para Débito Automático (Instituições Autorizadas BACEN)**
+
+| Posição De/Até | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | Fixo "6" | | X |
+| 002 a 004 | Carteira | 003 | Nº da Carteira | | X |
+| 005 a 009 | Agência | 005 | Código da Agência do Beneficiário | | X |
+| 010 a 016 | Conta-Corrente | 007 | Número da Conta-Corrente | | X |
+| 017 a 027 | Nosso Número | 011 | Nosso Número | | X |
+| 028 a 028 | Dígito do Nosso Número | 001 | Dígito do Nosso Número | X | |
+| 029 a 029 | Tipo de Operação | 001 | 1-Operação de Crédito<br>2-Arrendamento Mercantil<br>3-Outros | | X |
+| 030 a 030 | Utilização do Cheque Especial | 001 | S ou N | X | |
+| 031 a 031 | Consulta Saldo Após o Vencimento | 001 | S ou N | X | |
+| 032 a 056 | Número Cód.Identificação/Contrato | 025 | Número Operação Contratada | X | |
+| 057 a 064 | Prazo de Validade do Contrato /Autorização | 008 | DD/MM/AAAA ou Indeterminado (99999999) | | X |
+| 065 a 394 | Brancos | 330 | Brancos | | |
+| 395 a 400 | Número Sequencial do Registro | 005 | Sequência do Registro | | X |
+
+**Obs:** Para utilizar o serviço, o beneficiário deve procurar a Agência e solicitar o cadastro no contrato de cobrança.
+
+### Layout do Arquivo-Remessa - Registro de Transação-Tipo 7 (Dados do Beneficiário Final - opcional)
+
+| Posição De/a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Tipo Registro | 001 | 7 | | X |
+| 002 a 046 | Endereço Beneficiário Final | 045 | Endereço Beneficiário Final | X | |
+| 047 a 051 | CEP | 005 | CEP | | X |
+| 052 a 054 | Sufixo CEP | 003 | Sufixo CEP | | X |
+| 055 a 074 | Cidade | 020 | Cidade | X | |
+| 075 a 076 | UF | 002 | UF | X | |
+| 077 a 366 | Reserva | 290 | Filler | X | |
+| 367 a 369 | Carteira | 003 | Nº da Carteira | | X |
+| 370 a 374 | Agência | 005 | Código da Agência Beneficiário | | X |
+| 375 a 381 | Conta-Corrente | 007 | Nº da Conta-Corrente | | X |
+| 382 a 382 | Dígito C/C | 001 | DAC C/C | X | |
+| 383 a 393 | Nosso Número | 011 | Número Bancário Vide Obs. **Pág. 21** | | X |
+| 394 a 394 | DAC Nosso Número | 001 | Dígito N/N Vide Obs. **Pág. 21** | X | |
+| 395 a 400 | Nº Sequencial de Registro | 006 | Nº Sequencial de Registro | | X |
+
+### Layout do Arquivo-Remessa - Registro Trailer
+
+| Posição De/a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação Registro | 001 | 9 | | X |
+| 002 a 394 | Branco | 393 | Branco | X | |
+| 395 a 400 | Número Sequencial de Registro | 006 | Nº Sequencial do Último Registro | | X |
+
+---
+
+# Informações Complementares - Arquivo-Remessa
+
+**Notas:**
+1. Os campos numéricos deverão ser alinhados à direita e preenchidos com "zeros" à esquerda, quando for o caso.
+2. Os campos correspondentes a valores (moeda real) deverão ser preenchidos com duas casas decimais. Quando se tratar de moeda indexada (dólar, TR etc.), deverão ser preenchidos com cinco casas decimais.
+
+## Registro Header Label
+#### Das Posições
+**027 a 046 - Códigos da Empresa**
+Será informado pelo Bradesco, quando do cadastramento da conta do beneficiário na sua Agência. Esse código deve ser alinhado à direita com zeros à esquerda.
+
+**095 a 100 - Datas da Gravação do Arquivo**
+Para a retransmissão de um arquivo-remessa rejeitado, será necessário alterar a data constante desse campo, bem como atualizar o número de remessa nas posições 111 a 117 (número sequencial de remessa).
+
+**111 a 117 - Números Sequencial de Remessa**
+O número de remessa deve iniciar de 0000001 e incrementado de + 1 a cada novo arquivo-remessa, com o objetivo de evitar que ocorra duplicidade de arquivo, não podendo, em hipótese alguma, ser repetida ou zerada.
+Caso for enviado um número sequencial inferior ao da remessa encaminhada anteriormente, o sistema rejeitará a remessa e não será disponibilizado arquivo de retorno, pois o arquivo inteiro será rejeitado.
+Se o cliente enviar o arquivo, com o sequencial sendo 10 números acima do enviado anteriormente, o sistema acatará a remessa enviada no dia, e caso haja mais remessas, essas poderão ser envidas com os sequencias inferiores, desde que estejam dentro do ranger dos 10 últimos números sequências faltantes.
+EX: Último sequencial de remessa enviado no dia 01/04, número 10.
+No dia 02/04 foi enviado a primeira remessa com o sequencial 25, as demais remessas que serão enviadas no dia poderão ter a sequência de 15 até a 24 por estarem dentre do ranger sequencial dos 10 números faltantes para processamento no mesmo dia. As sequencias 11 a 14, serão rejeitadas por serem superiores as 10 faltantes a contar da última remessa registrada.
+
+## Registro de Transação - Tipo 1
+#### Das Posições
+**002 a 020 - Identificações do Débito Automático em C/C**
+Somente deverão ser preenchidos, caso o cliente beneficiário esteja previamente cadastrado para operar com a Modalidade de Cobrança com Débito Automático, cujos campos correspondentes a essas posições são:
+- posições 002 a 006 = n° da Agência do pagador a ser debitada;
+- posições 007 a 007 = dígito da Agência;
+- posições 008 a 012 = razão da conta - Ex.: 07050;
+- posições 013 a 019 = nº da conta-corrente do pagador;
+- posições 020 a 020 = dígito da conta-corrente.
+
+**021 a 037 - Identificações da Empresa Beneficiária no Banco**
+Deverá ser preenchido (da esquerda para a direita) da seguinte maneira:
+- 21 a 21 - Zero.
+- 22 a 24 - Códigos da Carteira.
+- 25 a 29 - Códigos da Agência Beneficiários, sem o Dígito.
+- 30 a 36 - Contas-Corrente.
+- 37 a 37 - Dígitos da Conta.
+
+**038 a 062 - N° do Controle do Participante**
+Campo destinado para uso da empresa. A informação que constar do arquivo-remessa será confirmada no arquivo-retorno. Não será impresso nos boletos de cobrança.
+
+**063 a 065 - Códigos do Banco para Débito - "237"**
+Deverá ser informado 237, caso o cliente beneficiário tenha optado pelo Débito Automático em conta do pagador. Para títulos em que não deve ser aplicado o Débito Automático, esse campo deverá ser preenchido com zeros.
+
+**066 a 066 - Identificativos de Multa**
+Se = 0 (sem multa).
+Se = 2 (tem multa).
+
+**067 a 070 - Percentual de Multa por Atraso**
+Se Campo 66 a 66 = 0, preencher com zeros.
+Se Campo 66 a 66 = 2, preencher com percentual da multa com 2 decimais.
+
+**071 a 082 - Identificações do Título no Banco (Nosso Número)**
+Campo reservado para o Nosso Número do Título (Número Bancário), cujo procedimento a ser adotado deve obedecer aos itens a seguir:
+- **EMISSÃO DO BOLETO PELO BANCO:** Nesse caso, esse campo deverá ser enviado com "zeros", pois o sistema informará o Nosso Número no arquivo-retorno, quando da confirmação de entrada.
+- **EMISSÃO DO BOLETO PELO CLIENTE:** As posições 71 a 82 do registro de transação deverão vir preenchidas com o Nosso Número e seu respectivo dígito de autoconferência.
+  - A linha de numeração deverá ser composta de 11 algarismos mais o dígito de autoconferência.
+  - **Posições 71 a 81:** Nosso Número - 11 posições.
+  - **Posição 82 a 82:** dígito de autoconferência do Nosso Número - 1 posição.
+
+  **Nota:** para o cálculo do dígito, será necessário acrescentar o número da carteira à esquerda antes do Nosso Número, e aplicar o módulo 11, com base 7.
+
+  **Exemplo de cálculo do dígito:**
+  1.  **Multiplicação:** Multiplicar a sequência `Carteira + Nosso Número` pelos pesos `2, 7, 6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2` (da direita para a esquerda).
+  2.  **Somatório:** Somar todos os resultados da multiplicação.
+  3.  **Divisão:** Dividir o somatório por 11.
+  4.  **Cálculo do Dígito:** `Dígito = 11 - (Resto da Divisão)`.
+  **Obs:**
+    - Se o resto for 0, o dígito é **0**.
+    - Se o resto for 1, o dígito é **P**.
+    - Se o resultado (11 - resto) for 10, o dígito é **P**.
+    - Se o resultado (11 - resto) for 11, o dígito é **0**.
+
+**093 a 093 - Condições para Emissão do Boleto de Cobrança**
+- Se for igual a **1** = o Banco emite o boleto e processa o registro.
+- Se for igual a **2** = o cliente emite o boleto e o Banco somente registra o boleto.
+- Se for informado diferente de 1 ou 2 (Zeros ou Brancos), o Banco criará o nosso número e registrará o boleto, e se no cadastro constar emissão cliente o boleto não será emitido.
+
+**094 a 094 - Condições de Registro para Débito Automático**
+- Quando igual a **"N"** e os dados do débito estiverem incorretos, rejeita o registro na cobrança e não emite boleto de cobrança.
+- Quando diferente de **"N"** e os dados do débito estiverem incorretos, registra na cobrança e emite boleto de cobrança. Nessa condição, não ocorrerá o agendamento do débito.
+
+**105 a 105 - Indicadores de Rateio de Crédito**
+Somente deverá ser preenchido com a Letra "R" se a empresa contratou o serviço de rateio de crédito; caso não tenha contratado, deixar em Branco.
+
+**106 a 106 - Endereçamentos do Aviso de Débito Automático em Conta-Corrente**
+- **1** = emite aviso, e assume o endereço do pagador constante do arquivo-remessa.
+- **2** = não emite aviso.
+- Diferente de 1 ou 2 = emite e assume o endereço do cliente debitado, constante do cadastro do Banco.
+
+**107 a 108 - Pagamento Parcial**
+Somente deverá ser preenchido com a quantidade de parcelas para pagamento se a empresa contratou o serviço Pagamento Parcial; caso não tenha contratado, deixar em Branco.
+- Quantidade mínima de parcelas = 02.
+- Quantidade máxima de parcelas = 99.
+
+**109 a 110 - Identificações de Ocorrência**
+- **01**..Remessa
+- **02**..Pedido de Baixa
+- **03**..Pedido de Protesto Falimentar
+- **04**..Concessão de Abatimento
+- **05**..Cancelamento de Abatimento Concedido
+- **06**..Alteração de Vencimento
+- ... (lista completa na página 19 do manual)
+
+**121 a 126 - Datas do Vencimento do Título**
+Preencher com a data de vencimento do título no formato (DDMMAA).
+
+**157 a 160 - 1ª / 2ª Instrução**
+Campo destinado para pré-determinar o protesto do título ou a baixa por decurso de prazo.
+- **Protesto/Negativação:** Posições 157 a 158 = "06" (Protestar) ou "07" (Negativar). Posições 159 a 160 = número de dias a protestar.
+- **Protesto Falimentar:** Posições 157 a 158 = "05".
+- **Decurso de Prazo:** Posições 157 a 158 = "18". Posições 159 a 160 = dias para baixa.
+- **Cancelamento da Instrução Automática:** Ocorrência "31" (pos 109-110) e preencher posições 157-160 com "9999".
+
+**161 a 173 - Valores a serem Cobrados por Dia de Atraso (Mora Dia)**
+Campo destinado para o beneficiário informar o valor da mora dia a ser cobrado do pagador.
+
+**193 a 205 - Valores do IOF**
+Esse campo somente deverá ser preenchido pelas empresas beneficiárias (Administradora de Seguros).
+
+**221 a 234 - Números da Inscrição do Pagador**
+Preenchimento da direita para a esquerda.
+- **CNPJ:** 2 posições controle; 4 posições filial; 8 posições CNPJ.
+- **CPF:** 2 posições controle; 9 posições CPF; 3 posições à esquerda zeradas.
+
+**315 a 326 - 1ª Mensagem**
+Campo livre para uso da empresa. Será impressa no boleto e não confirmada no retorno.
+
+**335 a 394 - 2ª Mensagem/Beneficiário Final**
+Pode ser utilizado para Beneficiário Final ou Mensagem. Não usar "taxa bancária" ou "tarifa bancária". Para informar **Beneficiário Final**, a empresa deve ser previamente cadastrada.
+
+## Registro de Transação - Tipo 2 / Mensagem (Opcional)
+#### Das Posições
+**383 a 394 - Nosso Número + Dígito**
+Esses campos deverão ser preenchidos, de acordo com as posições 71 a 82 do registro de transação - Tipo 1.
+**Nota:** a partir de 2017, o reaproveitamento do Campo Nosso Número será permitido somente após 1 dia corrido, contado da baixa do título anterior.
+
+## Registro - Tipo 3 / Rateio de Crédito - Arquivo-Remessa
+#### Das Posições
+**02 a 17 - Identificações da Empresa no Banco**
+Preenchido da esquerda para a direita:
+- 02 a 04 - Código da Carteira.
+- 05 a 09 - Código da Agência Beneficiário, sem o dígito.
+- 10 a 16 - Conta-Corrente.
+- 17 a 17 - Dígito da Conta-Corrente.
+
+**18 a 29 - Identificações do Título no Banco (Nosso Número)**
+Informado com zeros (emissão pelo Banco) ou conforme critérios das págs. 18 a 20 (emissão pela empresa).
+
+**30 a 30 - Códigos de Cálculo do Rateio**
+- 1- Valor Cobrado
+- 2- Valor do Registro
+- 3- Rateio pelo Menor Valor
+
+**31 a 31 - Tipos de Valor Informado**
+- 1- Percentual
+- 2- Valor
+**Importante:** a empresa que optar por rateio pelo valor cobrado deverá, obrigatoriamente, informar o rateio em percentual.
+
+**66 a 80 - Valor ou Percentual para Rateio**
+- Moeda Corrente: 2 decimais.
+- Moeda Indexada: 5 decimais.
+- Percentual: 3 decimais.
+
+**81 a 120 - Nomes do Beneficiário**
+Máximo de 90 beneficiários (30 registros Tipo 3 por título).
+
+**152 a 157 - Parcelas**
+Para diferenciar rateios de um mesmo título para o mesmo beneficiário várias vezes.
+
+**158 a 160 - Floatings do Beneficiário**
+Quantidade de dias para rateio, após a data do crédito (limitada a 30 dias).
+
+**Notas do Rateio:**
+- **Ocorrência 68 (Acerto):** Enviar novamente o registro Tipo 1 com ocorrência 68 e todos os beneficiários do rateio (incluindo os corrigidos).
+- **Ocorrência 69 (Cancelamento):** Informar ocorrência 69 no registro Tipo 1. Não é necessário enviar o registro Tipo 3.
+**Obs.:** para títulos baixados, todos os rateios associados serão eliminados/cancelados.
+
+## Informações Complementares - Tipo 7
+**Transmissão das informações complementares do beneficiário final após o registro do título**
+- Preencher o arquivo de transação Tipo 1 com as mesmas informações e indicar Código de Ocorrência 31.
+- Indicar, no arquivo de transação Tipo 7, as informações complementares do beneficiário final.
+
+---
+
+# Layout do Arquivo-Retorno (CNAB 400)
+
+## Layout do Arquivo-Retorno - Registro Header Label
+
+**Descrição de Registro - Tamanho 400 Bytes**
+- **A** - Alfanumérico - Conteúdo em Caixa Alta (Letras Maiúsculas)
+- **N** - Numérico
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | 0 | | X |
+| 002 a 002 | Identificação do Arquivo-Retorno | 001 | 2 | | X |
+| 003 a 009 | Literal Retorno | 007 | Retorno | X | |
+| 010 a 011 | Código do Serviço | 002 | 01 | | X |
+| 012 a 026 | Literal Serviço | 015 | Cobrança | X | |
+| 027 a 046 | Código da Empresa | 020 | Nº Empresa | | X |
+| 047 a 076 | Nome da Empresa por Extenso | 030 | Razão Social | X | |
+| 077 a 079 | Nº do Bradesco na Câmara Compensação | 003 | 237 | | X |
+| 080 a 094 | Nome do Banco por Extenso | 015 | Bradesco | X | |
+| 095 a 100 | Data da Gravação do Arquivo | 006 | DDMMAA | | X |
+| 101 a 108 | Densidade de Gravação | 008 | 01600000 | | X |
+| 109 a 113 | Nº Aviso Bancário | 005 | Nº Aviso | | X |
+| 114 a 379 | Branco | 266 | Branco | X | |
+| 380 a 385 | Data do Crédito | 006 | DDMMAA | | X |
+| 386 a 394 | Branco | 009 | Branco | X | |
+| 395 a 400 | Nº Sequencial de Registro | 006 | 000001 | | X |
+
+## Layout do Arquivo-Retorno - Registro de Transação - Tipo 1
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 (*) | Identificação do Registro | 001 | 1 | | X |
+| 002 a 003(*) | Tipo de Inscrição Empresa | 002 | 01-CPF<br>02-CNPJ | | X |
+| 004 a 017(*) | Nº Inscrição da Empresa | 014 | CNPJ/CPF<br>Número<br>Filial<br>Controle | | X |
+| 018 a 020 | Zeros | 003 | Zeros | | X |
+| 021 a 037(*) | Identificação da Empresa Beneficiário no Banco | 017 | Zero<br>Carteira<br>Agência<br>Conta-Corrente | X | |
+| 038 a 062 | Nº Controle do Participante | 025 | Uso da Empresa | X | |
+| 063 a 070 | Zeros | 008 | Zeros | | X |
+| 071 a 082(*) | Identificação do Título no Banco | 012 | Nº Banco | X | |
+| 083 a 092 | Uso do Banco | 010 | Zeros | X | |
+| 093 a 104 | Uso do Banco | 012 | Zeros | X | |
+| 105 a 105 | Indicador de Rateio Crédito | 001 | "R" | X | |
+| 106 a 107 | Pagamento Parcial | 002 | 00 - Não foi informado parcelamento ou o parcelamento foi rejeitado<br>Diferente 00 - Parcelamento aceito Obs. Pág.45 | | X |
+| 108 a 108 | Carteira | 001 | Carteira | X | |
+| 109 a 110(*) | Identificação de Ocorrência | 002 | | | X |
+| 111 a 116(*) | Data Ocorrência no Banco | 006 | DDMMAA | | X |
+| 117 a 126 | Número do Documento | 010 | Nº do Documento | X | |
+| 127 a 146(*) | Identificação do Título no Banco | 020 | Nº Banco | | X |
+| 147 a 152 | Data Vencimento do Título | 006 | DDMMAA | | X |
+| 153 a 165 | Valor do Título | 013 | Valor Título | | X |
+| 166 a 168(*) | Banco Cobrador | 003 | Código do Banco Câmara de Compensação | | X |
+| 169 a 173(*) | Agência Cobradora | 005 | Código da Agência do Banco Cobrador | | X |
+| 174 a 175 | Espécie do Título | 002 | Branco | X | |
+| 176 a 188 | Despesas de cobrança para os Códigos de Ocorrência 02 - Entradas Confirmadas 28 - Débitos de Tarifas | 013 | Valor Despesa | | X |
+| 189 a 201 | Outras Despesas<br>Custas de Protesto | 013 | Valor Outras Despesas | | X |
+| 202 a 214 | Juros Operação em Atraso | 013 | Será informado Com Zeros | | X |
+| 215 a 227 | IOF Devido | 013 | Valor do IOF | | X |
+| 228 a 240 | Abatimento Concedido sobre o Título | 013 | Valor Abatimento Concedido | | X |
+| 241 a 253 | Desconto Concedido | 013 | Valor Desconto Concedido | | X |
+| 254 a 266(*) | Valor Pago | 013 | Valor Pago | | X |
+| 267 a 279 | Juros de Mora | 013 | Juros de Mora | | X |
+| 280 a 292 | Outros Créditos | 013 | Será informado com Zeros | | X |
+| 293 a 294 | Brancos | 002 | Brancos | X | |
+| 295 a 295 | Motivo do Código de Ocorrência 25 (Confirmação de Instrução de Protesto Falimentar) e (Do Código de Ocorrência 19 Confirmação de Instrução de Protesto) | 001 | A - Aceito<br>D - Desprezado | X | |
+| 296 a 301(*) | Data do Crédito | 006 | DDMMAA | | X |
+| 302 a 304 | Origem Pagamento | 03 | Origem Vide | X | |
+| 305 a 314 | Brancos | 010 | Brancos | X | |
+| 315 a 318 | Quando Cheque Bradesco informe 0237 | 004 | Código do Banco | | X |
+| 319 a 328 | Motivos das Rejeições para os Códigos de Ocorrência das Posições 109 a 110 | 010 | Motivo | X | |
+| 329 a 368 | Brancos | 040 | Brancos | X | |
+| 369 a 370 | Número do Cartório | 002 | Número do Cartório | | X |
+| 371 a 380 | Número do Protocolo | 010 | Número do Protocolo | | X |
+| 381 a 394 | Brancos | 014 | Brancos | X | |
+| 395 a 400 | Nº Sequencial de Registro | 006 | Nº Sequencial Registro | | X |
+
+## Layout do Arquivo-Retorno - Registro de Transação - Tipo 3 – Rateio de Crédito
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | Fixo "3" | | X |
+| 002 a 017 | Identificação da Empresa no Banco | 016 | Carteira, Agência, Conta-Corrente. | X | |
+| 018 a 029 | Identificação Título no Banco | 012 | Número Bancário | X | |
+| 030 a 030 | Código de Cálculo do Rateio | 001 | "1"= Valor Cobrado<br>"2"= Valor do Registro<br>"3" = Rateio pelo Menor Valor | | X |
+| 031 a 031 | Tipo de Valor Informado | 001 | "1"= Percentual<br>"2"= Valor | | X |
+| 032 a 043 | Filler | 012 | Brancos | X | |
+| 044 a 046 | Código do Banco para Crédito do 1º Beneficiário | 003 | Fixo "237" | | X |
+| 047 a 051 | Código da Agência para Crédito do 1º Beneficiário | 005 | Código da Agência do Beneficiário | | X |
+| ... | ... | ... | ... | ... | ... |
+| 385 a 392 | Data do Crédito para o 3º Beneficiário Quando do Pagamento | 008 | Data do Crédito DDMMAAAA | | X |
+| 393 a 394 | Status / Motivo da Ocorrência de Rateio | 002 | | | X |
+| 395 a 400 | Número Sequencial do Registro | 006 | Número Sequencial do Registro | | X |
+
+## Layout do Arquivo-Retorno - Registro de Transação - Tipo 4 – QR CODE
+
+**Nota:** Arquivo deve ser retornado na sequência do registro tipo 1, na mesma ordem (Carteira, Agência, Conta e Nosso Número) dentro da ocorrência.
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | 4 | | X |
+| 002 a 004 | Carteira | 003 | Carteira | | X |
+| 005 a 009 | Agência | 005 | Código da Agência do Beneficiário | | X |
+| 010 a 016 | Conta-Corrente | 007 | Número da Conta-Corrente, sem Dígito | | X |
+| 017 a 027 | Nosso Número | 011 | Nosso Número | | X |
+| 028 a 028 | Dígito do Nosso Número | 001 | Dígito do Nosso Número | X | |
+| 029 a 105 | ChavePIX/URL | 077 | Chave Pix / URL do QR Code | X | |
+| 106 a 140 | TXID | 035 | Código de Identificação do QR Code | X | |
+| 141 a 394 | Brancos | 254 | Brancos | X | |
+| 395 a 400 | Nº Sequencial de Registro | 006 | Nº Sequencial de Registro | | X |
+
+## Layout do Arquivo-Retorno - Registro Trailer
+
+| Posição De / a | Nome do Campo | Tamanho do Campo | Conteúdo | A | N |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | 9 | | X |
+| 002 a 002 | Identificação do Retorno | 001 | 2 | | X |
+| 003 a 004 | Identificação Tipo de Registro | 002 | 01 | | X |
+| 005 a 007 | Código do Banco | 003 | 237 | | X |
+| 008 a 017 | Brancos | 010 | Brancos | X | |
+| 018 a 025 | Quantidade de Títulos em Cobrança | 008 | Quantidade de Títulos em Cobrança | | X |
+| 026 a 039 | Valor Total em Cobrança | 014 | Valor Total em Cobrança | | X |
+| 040 a 047 | Nº do Aviso Bancário | 008 | Nº do Aviso Bancário | | X |
+| 048 a 057 | Brancos | 010 | Brancos | X | |
+| 058 a 062 | Quantidade de Registros-Ocorrência 02 - Confirmação de Entradas | 005 | Quantidade de Registros | | X |
+| 063 a 074 | Valor dos Registros - Ocorrência 02 - Confirmação de Entradas | 012 | Valor dos Registros | | X |
+| 075 a 086 | Valor dos Registros-Ocorrência 06 - Liquidação | 012 | Valor dos Registros | | X |
+| ... | ... | ... | ... | ... | ... |
+| 177 a 188 | Valor dos Registros - Ocorrência 19 - Confirmação da Instrução de Protesto | 012 | Valor dos Registros | | X |
+| 189 a 362 | Brancos | 174 | Brancos | X | |
+| 363 a 377 | Valor Total dos Rateios Efetuados | 015 | Valor Total Rateios | | X |
+| 378 a 385 | Quantidade Total dos Rateios Efetuados | 08 | Quantidade Rateios Efetuados | | X |
+| 386 a 394 | Brancos | 09 | Brancos | X | |
+| 395 a 400 | Número Sequencial do Registro | 006 | Nº Sequencial do Registro | | X |
+
+---
+
+# Informações Complementares - Arquivo-Retorno
+
+**Nota:** os campos numéricos estarão alinhados à direita e preenchidos com "zeros” à esquerda.
+
+## Registro de Transação - Tipo 1
+
+### Das Posições
+
+**021 a 037 - Identificações da Empresa Beneficiária no Banco**
+Confirmação idêntica à do arquivo-remessa (zero, carteira, Agência e conta-corrente).
+
+**071 a 082 - Identificações do Título no Banco (Nosso Número)**
+Caso o arquivo-remessa tenha sido enviado com "zeros”, nesse campo estará sendo confirmado o Nosso Número gerado para o título. Caso o arquivo-remessa tenha sido enviado com o Nosso Número formatado, o mesmo será confirmado.
+
+**105 a 105 - Identificações do Rateio**
+Somente será informado "R" para a empresa participante da rotina de rateio de crédito; caso não seja, será informado zeros.
+
+**106 a 107 - Pagamento Parcial**
+Será informado "00" para a empresa que possui o serviço contratado, porém, não informou a quantidade de parcelas de pagamento, e para os casos em que a empresa não contratou o serviço.
+E diferente de "00" para as empresas que possui o serviço contratado e tenha informado no arquivo-remessa a quantidade de parcelas, ou seja, será replicada a quantidade de parcelas aceitas.
+*Exemplo:*
+Arquivo-Remessa: posições 107 a 108 - 03.
+Arquivo-Retorno: posições 106 a 107 - 03.
+
+**109 a 110 - Identificações de Ocorrência**
+- **02..** Entrada Confirmada (verificar motivo nas posições 319 a 328)
+- **03..** Entrada Rejeitada (verificar motivo nas posições 319 a 328)
+- **06..** Liquidação Normal (sem motivo)
+- **07..** Conf. Exc. Cadastro Pagador Débito (verificar motivos nas posições 319 a 328)
+- **08..** Rej. Ped. Exc. Cadastro de Pagador Débito (verificar motivos nas posições 319 a 328)
+- **09..** Baixado Automat. via Arquivo (verificar motivo posições 319 a 328)
+- **10..** Baixado conforme instruções da Agência (verificar motivo Pos.319 a 328)
+- **11..** Em Ser - Arquivo de Títulos Pendentes
+- **12..** Abatimento Concedido
+- **13..** Abatimento Cancelado
+- **14..** Vencimento Alterado
+- **15..** Liquidação em Cartório (sem motivo)
+- **16..** Título Pago em Cheque - Vinculado
+- **17..** Liquidação após Baixa ou Título não Registrado (verificar motivo nas posições 319 a 328)
+- **18..** Acerto de Depositária
+- **19..** Confirmação Receb. Inst. de Protesto (verificar motivo pos.295 a 295)
+- **20..** Confirmação Recebimento Instrução Sustação de Protesto
+- **21..** Acerto do Controle do Participante
+- **22..** Título com Pagamento Cancelado
+- **23..** Entrada do Título em Cartório
+- **24..** Entrada Rejeitada por CEP Irregular (verificar motivo pos.319 a 328)
+- **25..** Confirmação Receb.Inst.de Protesto Falimentar (verificar pos.295 a 295)
+- **27..** Baixa Rejeitada (verificar motivo posições 319 a 328)
+- **28..** Débito de Tarifas/Custas (verificar motivo nas posições 319 a 328)
+- **29..** Ocorrências do Pagador (verificar motivo nas posições 319 a 328)
+- **30..** Alteração de Outros Dados Rejeitados (verificar motivo Pos.319 a 328)
+- **31..** Confirmado Inclusão Cadastro Pagador
+- **32..** Instrução Rejeitada (verificar motivo posições 319 a 328)
+- **33..** Confirmação Pedido Alteração Outros Dados
+- **34..** Retirado de Cartório e Manutenção Carteira
+- **35..** Cancelamento do Agendamento do Débito Automático (verificar motivos pos. 319 a 328)
+- **37..** Rejeitado Inclusão Cadastro Pagador (verificar motivos nas posições 319 a 328)
+- **38..** Confirmado Alteração Pagador
+- **39..** Rejeitado Alteração Cadastro Pagador (verificar motivos nas posições 319 a 328)
+- **40..** Estorno de Pagamento
+- **55..** Sustado Judicial
+- **66..** Título Baixado por Pagamento via Pix
+- **68..** Acerto dos Dados do Rateio de Crédito (verificar motivo posição de status do registro Tipo 3)
+- **69..** Cancelamento de Rateio (verificar motivo posição de status do registro Tipo 3)
+- **73..** Confirmação Receb. Pedido de Negativação
+- **74..** Confir Pedido de Excl de Negat (com ou sem baixa)
+
+**Nota:** para as ocorrências sem motivos, as posições serão informadas com zeros.
+
+**127 a 146 - Identificações do Título no Banco (Nosso Número)**
+Mesmo Nosso Número informado nas posições 71 a 82 do registro de transação.
+
+**176 a 188 - Despesas de Cobrança**
+Nesse campo será informado o valor da tarifa de registro, correspondente ao Código de Ocorrência 02 - entrada confirmada (posições 109 a 110 do registro de transação) e Código de Ocorrência 28 - Débito de Tarifas/Custas (posições 109 a 110 do registro de transação), com Motivo 03 - Tarifa de Sustação e Motivo 04 - Tarifa de Protesto (posições 319 a 328 do registro de transação).
+
+**189 a 201 - Outras Despesas**
+Nesse campo será informado o valor referente ao Código de Ocorrência 28 - Débito de Tarifas/Custas (posições 109 a 110 do registro de transação), com Motivo 08 - Custas de Protesto (posições 319 a 328 do registro de transação).
+
+**215 a 227- IOF devido**
+Quando da confirmação de entradas, Código de Ocorrência 02 (posições 109 a 110), o valor do IOF não será confirmado, porém, quando da liquidação, cujo Código de Ocorrência é 06, será informado o valor do IOF recolhido.
+
+**228 a 240- Abatimentos Concedidos sobre o Título**
+Quando da confirmação de entradas, Código de Ocorrência 02 (posições 109 a 110), o valor do abatimento a ser concedido não será confirmado, porém, quando da liquidação, o valor do abatimento concedido será informado nas posições 241 a 253 (desconto concedido).
+
+**241 a 253 - Descontos Concedidos**
+Quando da confirmação de entradas, Código de Ocorrência 02 (posições 109 a 110), o valor do desconto a ser concedido não será confirmado, porém, quando da liquidação, o valor do desconto concedido será informado normalmente nesse campo.
+
+**254 a 266 - Valores Pagos**
+Nesse campo será informado o valor total recebido, sendo que nas posições 267 a 279 será discriminado o valor dos juros de mora, e nas posições 241 a 253, o valor do abatimento/desconto concedido, se for o caso.
+**Nota:** para título com abatimento, pago vencido:
+- Se o valor do abatimento for maior que o valor dos juros (diferença do abatimento menos os juros), a informação será enviada nos Campos 241 a 253.
+- Se o valor do abatimento for menor que o valor dos juros (diferença dos juros menos o abatimento), a informação será enviada nos Campos 267 a 279.
+
+**295 a 295 - Motivos para Instrução de Protesto**
+- Quando do envio do arquivo-remessa contendo o Código de Ocorrência 03 - Pedido de Protesto Falimentar (posições 109 a 110 do registro de transação), no arquivo-retorno será informado o Código de Ocorrência 25 - Confirmação Recebimento Instrução de Protesto Falimentar, porém com os respectivos motivos nessa posição, ou seja, A = Aceito ou D = Desprezado.
+- Quando do envio do arquivo-remessa contendo o Código de Ocorrência 09 - Pedido de Protesto (posições 109 a 110 do Registro de Transação), no arquivo-retorno será informado o Código de Ocorrência 19 - Confirmação Recebimento Instrução de Protesto, porém com os respectivos motivos nessa posição, ou seja: A = Aceito ou D = Desprezado.
+
+**302 A 304 - Origem Pagamento**
+Informa o código correspondente ao Canal de Pagamento para os códigos de ocorrência (06 - Liquidação, 15 - Liquidação em Cartório, 17 - Liquidação após Baixa ou Título não Registrado), sendo:
+- **001** - CICS (ATOO);
+- **002** - BDN Multi Saque;
+- **007** - Term. Ger. CBCA PF8;
+- **010** - Ter. Ger. CBCA Senhas;
+- **013** - Fone Fácil;
+- **014** - Internet;
+- **024** - Term. Multi Função;
+- **027** - Pag Contas;
+- **035** - Net Empresa;
+- **052** - Shop Credit;
+- **066** - Mobile Banking;
+- **067** - Déb Automático;
+- **073** - Pag For;
+- **074** - Boca do Caixa;
+- **075** - Retaguarda;
+- **076** - Subcentro;
+- **077** - Cartão de Crédito;
+- **078** - Compensação Eletrônica;
+- **082** - Bradesco Expresso;
+- **094** - TECBAN=Bco 24 Horas;
+- **515** - Bradesco Next.
+
+**Obs.:** essa informação será disponibilizada no arquivo-retorno somente para as empresas previamente cadastradas para essa condição. Para pagamento de boleto parcial, no arquivo consolidado, será demonstrado a informação individualizada por boleto.
+
+**319 a 328 - Motivos para os Códigos de Ocorrência**
+Para cada código de ocorrência (posições 109 a 110), poderá ser informado até 5 (cinco) motivos nesse campo, se for o caso.
+
+---
+
+### Motivos por Código de Ocorrência
+
+#### Ocorrência = 02 - Entrada Confirmada - Motivos
+- **00..** Ocorrência Aceita
+- **01..** Código do Banco Inválido
+- **02..** Pendente de Autorização (Autorização Débito Automático)
+- **03..** Pendente de Ação do Pagador (Autorização Débito Automático - Data Vencimento)
+- **04..** Código do Movimento não Permitido para a Carteira
+- **15..** Características da Cobrança Incompatíveis
+- **17..** Data de Vencimento Anterior à Data de Emissão
+- **21..** Espécie do Título Inválido
+- **24..** Data da Emissão Inválida
+- **27..** Valor/Taxa de Juros Mora Inválido
+- **38..** Prazo para Protesto/Negativação Inválido
+- **39..** Pedido para Protesto/Negativação não Permitido para o Título
+- **43..** Prazo para Baixa e Devolução Inválido
+- **45..** Nome do Pagador Inválido
+- **46..** Tipo/Num. de Inscrição do Pagador Inválidos
+- **47..** Endereço do Pagador não Informado
+- **48..** CEP Inválido
+- **50..** CEP referente a Banco Correspondente
+- **53..** Tipo/N° de Inscrição do Pagador/Avalista Inválidos (CPF/CNPJ)
+- **54..** Beneficiário Final não Informado
+- **67..** Débito Automático Agendado
+- **68..** Débito não Agendado - Erro nos Dados de Remessa
+- **69..** Débito não Agendado - Pagador não Consta no Cadastro de Autorizante
+- **70..** Débito não Agendado - Beneficiário não Autorizado pelo Pagador
+- **71..** Débito não Agendado - Beneficiário não Participa da Modalidade de Déb.Automático
+- **72..** Débito não Agendado - Código de Moeda Diferente de R$
+- **73..** Débito não Agendado - Data de Vencimento Inválida/Vencida
+- **75..** Débito não Agendado - Tipo do Número de Inscrição do Pagador Debitado Inválido
+- **76..** Pagador Eletrônico DDA - Esse motivo somente será disponibilizado no arquivo-retorno para as empresas cadastradas nessa condição
+- **86..** Seu Número do Documento Inválido
+- **87..** Título Baixado por Coobrigação e Devolvido para Carteira
+- **P1..** Registrado com QR CODE PIX
+- **P2..** Registrado sem QR CODE PIX
+- **P3..** Chave Pix Inválida
+- **P4..** Chave Pix sem Cadastro no DICT
+- **P5..** Chave Pix não Compatível CNPJ/CPF ou Agência/Conta Informada
+- **P6..** Identificador (TXID) em Duplicidade
+- **P7..** Identificador (TXID) Inválido ou Não Encontrado
+- **P8..** Alteração Não Permitida - QR CODE concluído, removido pelo PSP ou removido pelo usuário recebedor
+
+**Obs.:**
+- Os Motivos 17, 21, 24, 38, 39, 43, 45, 46, 47, 48, 50, 53 e 54 dessa ocorrência somente serão informados no arquivo-retorno para os títulos com instrução de protesto na remessa (posições 157 a 160 do registro de transação). Não rejeitaremos o título, somente informaremos a falta de dados que ocasionará o não aceite da instrução de protesto, caso não seja regularizado em tempo hábil.
+- O Motivo 48 dessa ocorrência somente será informado no arquivo-retorno para os títulos cujas papeletas são emitidas pelo beneficiário. Não rejeitaremos o título, somente informaremos sobre o erro desse dado que ocasionará o não aceite da instrução de protesto, caso não seja regularizado em tempo hábil.
+- Os Motivos 53 e 54 dessa ocorrência somente serão informados no arquivo-retorno para os títulos com instrução de protesto na remessa (posições 157 a 160 do registro de transação). Não rejeitaremos o título, somente informaremos a falta de dados que ocasionará a falta do **beneficiário final** na Instrução de Protesto, caso não seja regularizado em tempo hábil.
+
+#### Ocorrência = 03 - Entrada Rejeitada - Motivos
+- **00..** Ocorrência Aceita
+- **02..** Código do Registro Detalhe Inválido
+- **03..** Código da Ocorrência Inválida
+- **04..** Código de Ocorrência não Permitida para a Carteira
+- **05..** Código de Ocorrência não Numérico
+- **07..** Agência/Conta/Dígito Inválido
+- **08..** Nosso Número Inválido
+- **09..** Nosso Número Duplicado
+- **10..** Carteira Inválida
+- **13..** Identificação da Emissão do Bloqueto Inválida
+- **16..** Data de Vencimento Inválida
+- **18..** Vencimento fora do Prazo de Operação
+- **20..** Valor do Título Inválido
+- **21..** Espécie do Título Inválida
+- **22..** Espécie não Permitida para a Carteira
+- **23..** Tipo Pagamento não Contratado
+- **24..** Data de Emissão Inválida
+- **27..** Valor/Taxa de Juros Mora Inválido
+- **28..** Código do Desconto Inválido
+- **29..** Valor Desconto > ou = Valor Título
+- **32..** Valor do IOF Inválido
+- **34..** Valor do Abatimento Maior ou Igual ao Valor do Título
+- **38..** Prazo para Protesto/Negativação Inválido
+- **39..** Pedido de Protesto/Negativação não Permitida para o Título
+- **44..** Código da Moeda Inválido
+- **45..** Nome do Pagador não Informado
+- **46..** Tipo/Número de Inscrição do Pagador Inválidos
+- **47..** Endereço do Pagador não Informado
+- **48..** CEP Inválido
+- **49..** CEP sem Praça de Cobrança
+- **50..** CEP Irregular - Banco Correspondente
+- **53..** Tipo/Número de Inscrição do Beneficiário Final Inválido
+- **54..** Sacador/Avalista (Beneficiário Final) não Informado
+- **59..** Valor/Percentual da Multa Inválido
+- **63..** Entrada para Título já Cadastrado
+- **65..** Limite Excedido
+- **66..** Número Autorização Inexistente
+- **68..** Débito não Agendado - Erro nos Dados de Remessa
+- **69..** Débito não Agendado - Pagador não Consta no Cadastro de Autorizante
+- **70..** Débito não Agendado - Beneficiário não Autorizado pelo Pagador
+- **71..** Débito não Agendado - Beneficiário não Participa do Débito Automático
+- **72..** Débito não Agendado - Código de Moeda Diferente de R$
+- **73..** Débito não Agendado - Data de Vencimento Inválida/Cadastro Vencido
+- **74..** Débito não Agendado - Conforme seu Pedido, Título não Registrado
+- **75..** Débito não Agendado - Tipo de Número de Inscrição do Debitado Inválido
+- **79..** Data de Juros de Mora Inválida
+- **80..** Data do Desconto Inválida
+- **86..** Seu Número Inválido
+- **A3.** Benef. Final/ Sacador/Pagador Devem ser iguais
+- **A6.** Esp. BDP/Depósito e Aporte, não Aceita Pgto Parcial
+
+#### Ocorrência = 06 - Liquidação - Motivo
+- **00..** Crédito Disponível
+- **15..** Crédito Indisponível
+- **18..** Pagamento Parcial
+- **42..** Rateio não Efetuado, Cód. Cálculo 2 (VLR. Registro)
+
+**1) Crédito Disponível**
+Quando ocorrências 06,15 e 17, nas condições abaixo:
+- Se o Banco cobrador for igual a "237", e a forma de pagamento for em Dinheiro, Débito em Conta (Com Reserva) ou em Cheque (após a compensação do valor no Razão 08.52).
+- Se o Banco cobrador for diferente de "237", com dias de floating maior que zero.
+
+**2) Crédito Indisponível**
+Quando ocorrências 06, 15 e 17, nas condições abaixo:
+- Se o Banco cobrador for igual a "237", e o recurso utilizado para quitar o débito (for Sem Reserva) ou com Cheque (liberado sem aguardar a compensação do mesmo no Razão 08.52).
+- Se o Banco cobrador for diferente de "237", com dias de floating igual a zero.
+
+**Nota:** os clientes que contrataram o serviço de arquivo-retorno (Hora/Hora) devem considerar o pagamento efetivado somente após a recepção do arquivo-retorno consolidado.
+
+#### Ocorrência 07 = Conf Exc. Cadastro Pagador Débito
+- **AO.** Cadastro Excluído pelo Beneficiário
+- **A1.** Cadastro Excluído pelo Pagador
+
+#### Ocorrência 08 = Rej. Ped. Exc. Cadastro de Pagador Débito
+- **CO** - Informações do Tipo 6 Inválidas
+- **B9** - Cadastro Pagador não Localizado
+
+#### Ocorrência = 09 - Baixado Automaticamente via Arquivo - Motivo
+- **00.** Ocorrência Aceita
+- **10.** Baixa Comandada pelo Cliente
+- **18.** Pagador não Aceitou o Débito (Autorização Débito Automático)
+- **19.** Pendente de Ação do Pagador (Autorização Débito Automático)
+
+#### Ocorrência = 10 - Baixado pelo Banco - Motivo
+- **00..** Baixado Conforme Instruções da Agência
+- **14..** Título Protestado
+- **16..** Título Baixado pelo Banco por Decurso Prazo
+- **20..** Título Baixado e Transferido para Desconto
+
+#### Ocorrência = 13 - Abatimento Cancelado
+- **P8..** Alteração não Permitida - QR CODE Pago ou Cancelado
+
+#### Ocorrência = 14 - Vencimento Alterado
+- **P8..** Alteração não Permitida - QR CODE Pago ou Cancelado
+
+#### Ocorrência = 15 - Liquidação em Cartório - Motivo
+- **00.** Crédito Disponível
+- **15.** Crédito Indisponível
+
+#### Ocorrência = 17 - Liquidação após Baixa ou Título não Registrado - Motivo
+- **00.** Crédito Disponível
+- **15.** Crédito Indisponível
+
+#### Ocorrência = 24 - Entrada Rejeitada por CEP Irregular - Motivo
+- **00.** Ocorrência Aceita
+- **48.** CEP Inválido
+- **49.** CEP sem Praça de Cobrança
+
+#### Ocorrência = 27 - Baixa Rejeitada - Motivos
+- **00..** Ocorrência Aceita
+- **02..** Código do Registro Detalhe Inválido
+- **04..** Código de Ocorrência não Permitido para a Carteira
+- **07..** Agência/Conta/Dígito Inválidos
+- **08..** Nosso Número Inválido
+- **09..** Nosso Número Duplicado
+- **10..** Carteira Inválida
+- **15..** Carteira/Agência/Conta/Nosso Número Inválidos
+- **16..** Data Vencimento Inválida
+- **18..** Vencimento Fora do Prazo de Operação
+- **20..** Valor Título Inválido
+- **40..** Título com Ordem de Protesto Emitido
+- **42..** Código para Baixa/Devolução Inválido
+- **45..** Nome do Sacado não Informado ou Inválido
+- **46..** Tipo/Número de Inscrição do Sacado Inválido
+- **47..** Endereço do Sacado não Informado
+- **48..** CEP Inválido
+- **60..** Movimento para Título não Cadastrado
+- **63..** Entrada para Título já Cadastrado
+- **77..** Transferência para Desconto não Permitido para a Carteira
+- **85..** Título com Pagamento Vinculado
+- **86..** Seu Número Inválido
+
+#### Ocorrência = 28 - Débito de Tarifas/Custas - Motivos
+**Obs.:** os motivos abaixo identificados com (*) serão disponibilizados, no arquivo-retorno, somente para as empresas cadastradas para essa condição.
+- **02..** Tarifa de Permanência Título Cadastrado (*)
+- **03..** Tarifa de Sustação/Excl Negativação (*)
+- **04..** Tarifa de Protesto/Incl Negativação (*)
+- **08..** Custas de Protesto
+- **12..** Tarifa de Registro (*)
+- **13..** Tarifa Título Pago no Bradesco (*)
+- **14..** Tarifa Título Pago Compensação (*)
+- **15..** Tarifa Título Baixado não Pago (*)
+- **16..** Tarifa Alteração de Vencimento (*)
+- **17..** Tarifa Concessão Abatimento (*)
+- **18..** Tarifa Cancelamento de Abatimento (*)
+- **19..** Tarifa Concessão Desconto (*)
+- **20..** Tarifa Cancelamento Desconto (*)
+- **21..** Tarifa Título Pago CICS (*)
+- **22..** Tarifa Título Pago Internet (*)
+- **23..** Tarifa Título Pago Term. Gerencial Serviços (*)
+- **24..** Tarifa Título Pago Pag-Contas (*)
+- **25..** Tarifa Título Pago Fone Fácil (*)
+- **26..** Tarifa Título Déb. Postagem (*)
+- **28..** Tarifa Título Pago BDN (*)
+- **29..** Tarifa Título Pago Term. Multi Função (*)
+- **32..** Tarifa Título Pago PagFor (*)
+- **33..** Tarifa Reg/Pgto - Guichê Caixa (*)
+- **34..** Tarifa Título Pago Retaguarda (*)
+- **35..** Tarifa Título Pago Subcentro (*)
+- **36..** Tarifa Título Pago Cartão de Crédito (*)
+- **37..** Tarifa Título Pago Comp Eletrônica (*)
+- **38..** Tarifa Título Baix. Pg. Cartório (*)
+- **39..** Tarifa Título Baixado Acerto Bco (*)
+- **40..** Baixa Registro em Duplicidade (*)
+- **41..** Tarifa Título Baixado Decurso Prazo (*)
+- **42..** Tarifa Título Baixado Judicialmente (*)
+- **43..** Tarifa Título Baixado via Remessa (*)
+- **44..** Tarifa Título Baixado Rastreamento (*)
+- **45..** Tarifa Título Baixado Conf. Pedido (*)
+- **46..** Tarifa Título Baixado Protestado (*)
+- **47..** Tarifa Título Baixado p/ Devolução (*)
+- **48..** Tarifa Título Baixado Franco Pagto (*)
+- **49..** Tarifa Título Baixado Sust/Ret/Cartório (*)
+- **50..** Tarifa Título Baixado Sus/Sem/Rem/Cartório (*)
+- **51..** Tarifa Título Transferido Desconto (*)
+- **54..** Tarifa Baixa por Contabilidade (*)
+- **55..** Tr. Tentativa Cons Déb Aut
+- **56..** Tr. Crédito On-Line
+- **57..** Tarifa Reg/Pagto Bradesco Expresso
+- **58..** Tarifa Emissão Papeleta
+- **78..** Tarifa Cadastro Cartela Instrução Permanente (*)
+- **80..** Tarifa Parcial Pagamento Compensação (*)
+- **81..** Tarifa Reapresentação Automática Título (*)
+- **82..** Tarifa Registro Título Déb. Automático (*)
+- **83..** Tarifa Rateio de Crédito (*)
+- **89..** Tarifa Parcial Pagamento Bradesco (*)
+- **96..** Tarifa Reg. Pagto Outras Mídias (*)
+- **97..** Tarifa Reg/Pagto - Net Empresa (*)
+- **98..** Tarifa Título Pago Vencido (*)
+- **99..** Tr.Tít. Baixado por Decurso Prazo (*)
+
+**NOTA:** quando tem mais de uma tarifa para o mesmo título, somente devolvemos o valor da 1ª.
+
+#### Ocorrência = 29 - Ocorrência do Pagador
+**Obs.:** os motivos abaixo identificados com (*) serão disponibilizadas, no arquivo-retorno, somente para as empresas cadastradas para essa condição.
+- **78..** Pagador Alega que Faturamento é Indevido (*)
+- **95..** Pagador Aceita/Reconhece Faturamento (*)
+
+#### Ocorrência = 30 - Alteração de Outros Dados Rejeitados - Motivos
+- **00..** Ocorrência Aceita
+- **01..** Código do Banco Inválido
+- **04..** Código de Ocorrência não Permitido para a Carteira
+- **05..** Código da Ocorrência não Numérico
+- **08..** Nosso Número Inválido
+- **15..** Característica da Cobrança Incompatível
+- **16..** Data de Vencimento Inválido
+- **17..** Data de Vencimento Anterior à Data de Emissão
+- **18..** Vencimento Fora do Prazo de Operação
+- **20..** Valor Título Inválido
+- **21..** Espécie Título Inválida
+- **22..** Espécie não Permitida para a Carteira
+- **23..** Tipo Pagamento não Contratado
+- **24..** Data de Emissão Inválida
+- **26..** Código de Juros de Mora Inválido (*)
+- **27..** Valor/Taxa de Juros de Mora Inválido
+- **28..** Código de Desconto Inválido
+- **29..** Valor do Desconto Maior/Igual ao Valor do Título
+- **30..** Desconto a Conceder não Confere
+- **31..** Concessão de Desconto já Existente (Desconto Anterior)
+- **32..** Valor do IOF Inválido
+- **33..** Valor do Abatimento Inválido
+- **34..** Valor do Abatimento Maior/Igual ao Valor do Título
+- **36..** Concessão Abatimento
+- **38..** Prazo para Protesto/ Negativação Inválido
+- **39..** Pedido para Protesto/ Negativação não Permitido para o Título
+- **40..** Título com Ordem/Pedido de Protesto/Negativação Emitido
+- **42..** Código para Baixa/Devolução Inválido
+- **43..** Prazo para Baixa/Devolução Inválido
+- **46..** Tipo/Número de Inscrição do Pagador Inválidos
+- **48..** CEP Inválido
+- **53..** Tipo/Número de Inscrição do Pagador/Avalista Inválidos
+- **54..** Pagador/Avalista não Informado
+- **57..** Código da Multa Inválido
+- **58..** Data da Multa Inválida
+- **60..** Movimento para Título não Cadastrado
+- **79..** Data de Juros de Mora Inválida
+- **80..** Data do Desconto Inválida
+- **85..** Título com Pagamento Vinculado.
+- **CO** - Informações do Tipo 6 Inválidas
+- **C1** - Informações do Tipo 6 Divergentes do Cadastro
+
+**Dados Chave do Boleto - não passíveis de alteração:**
+Tipo de pessoa do beneficiário original, CPF ou CNPJ do beneficiário original, nome ou razão social do beneficiário original, tipo de pessoa do cliente pagador, CPF ou CNPJ do cliente pagador, código da moeda, identificação do Nosso Número, data de emissão, indicador de pagamento parcial.
+
+#### Ocorrência = 32 - Instrução Rejeitada - Motivos
+- **00.** Ocorrência Aceita
+- **01..** Código do Banco Inválido
+- **02..** Código Registro Detalhe Inválido
+- **04..** Código de Ocorrência não Permitido para a Carteira
+- **05..** Código de Ocorrência não Numérico
+- **06..** Espécie BDP, não Aceita Pagamento Parcial
+- **07..** Agência/Conta/Dígito Inválidos
+- **08..** Nosso Número Inválido
+- **10..** Carteira Inválida
+- **15..** Características da Cobrança Incompatíveis
+- **16..** Data de Vencimento Inválida
+- **17..** Data de Vencimento Anterior à Data de Emissão
+- **18..** Vencimento Fora do Prazo de Operação
+- **20..** Valor do Título Inválido
+- **21..** Espécie do Título Inválida
+- **22..** Espécie não Permitida para a Carteira
+- **23..** Tipo Pagamento não Contratado
+- **24..** Data de Emissão Inválida
+- **26..** Código Juros Mora Inválido
+- **27..** Valor/Taxa Juros Mira Inválido
+- **28..** Código de Desconto Inválido
+- **29..** Valor do Desconto Maior/Igual ao Valor do Título
+- **30..** Desconto a Conceder não Confere
+- **31..** Concessão de Desconto - Já Existe Desconto Anterior
+- **33..** Valor do Abatimento Inválido
+- **34..** Valor do Abatimento Maior/Igual ao Valor do Título
+- **36..** Concessão Abatimento - Já Existe Abatimento Anterior
+- **38..** Prazo para Protesto/Negativação Inválido
+- **39..** Pedido para Protesto/Negativação não Permitido para o Título
+- **40..** Título com Ordem/Pedido de Protesto/Negativação Emitido
+- **41..** Pedido de Sustação/Excl p/ Título sem Instrução de Protesto/Negativação
+- **45..** Nome do Pagador não Informado
+- **46..** Tipo/Número de Inscrição do Pagador Inválidos
+- **47..** Endereço do Pagador não Informado
+- **48..** CEP Inválido
+- **50..** CEP referente a um Banco Correspondente
+- **52..** Unidade da Federação Inválida
+- **53..** Tipo de Inscrição do Pagador Avalista Inválidos
+- **60..** Movimento para Título não Cadastrado
+- **65..** Limite Excedido
+- **66..** Número Autorização Inexistente
+- **85..** Título com Pagamento Vinculado
+- **86..** Seu Número Inválido
+- **94..** Título Cessão Fiduciária - Instrução Não Liberada pela Agência
+- **97..** Instrução não Permitida Título Negativado
+- **98..** Inclusão Bloqueada face à Determinação Judicial
+- **99..** Telefone Beneficiário não Informado / Inconsistente
+
+#### Ocorrência = 33 - Confirmação Pedido Alteração Outros Dados
+- **P8..** Alteração não Permitida - QR CODE Pago ou Cancelado
+
+#### Ocorrência = 35 - Cancelamento do Agendamento do Débito Automático - Motivos
+- **81..** Tentativas Esgotadas, Baixado
+- **82..** Tentativas Esgotadas, Pendente
+- **83..** Cancelado pelo Pagador e Mantido Pendente, Conforme Negociação (*)
+- **84..** Cancelado pelo Pagador e Baixado, Conforme Negociação (*)
+
+#### Ocorrência 37 = Rejeitado Inclusão Cadastro Pagador
+- **CO** - Informações do Tipo 6 Inválidas
+- **C1** - Informações do Tipo 6 Divergentes do Cadastro
+
+#### Ocorrência 39 = Rejeitado Alteração Cadastro Pagador
+- **CO** - Informações do Tipo 6 Inválidas
+- **C1** - Informações do Tipo 6 Divergentes do Cadastro
+
+---
+
+### Registro - Tipo 3 - Rateio de Crédito - Arquivo-Retorno
+
+**369 a 370 - Números do Cartório**
+**Obs.:** para o recebimento dessa informação, é necessário cadastro prévio na negociação do cliente do Indicador "128-DISP INF CART/PROTOCOLO RETORNO".
+
+**371 a 380 - Números do Protocolo**
+**Obs.:** para o recebimento dessa informação, é necessário cadastro prévio na negociação do cliente do Indicador "128-DISP INF CART/PROTOCOLO RETORNO".
+
+**2 a 17 = Identificação da Empresa no Banco informar da seguinte forma:**
+- 02 a 04 - Códigos da Carteira
+- 05 a 09 - Códigos da Agência Beneficiário, sem o Dígito
+- 10 a 16 - Contas-Corrente
+- 17 a 17 - Dígitos da Conta
+
+**18 a 29 - Identificações do Título no Banco (Nosso Número)**
+Caso o arquivo-remessa tenha sido enviado com "zeros", nesse campo será informado o Nosso Número gerado pelo Banco. Caso o arquivo-remessa tenha sido enviado com o Nosso Número já formatado, o mesmo será confirmado.
+
+**66 a 80 - Valor Efetivo do Rateio - Quando do Pagamento**
+Será informado o valor efetivo do rateio, em moeda corrente, quando se tratar de pagamento. Quando a ocorrência for diferente de 06 - Liquidação Normal no registro Tipo 1, esse campo voltará zerado.
+
+**151 a 158 - Datas do Crédito do Rateio para o Beneficiário**
+Somente retornará a data nesse campo quando a ocorrência no registro Tipo 1 for igual a 06 - Liquidação Normal.
+
+**159 a 160 - Status/Motivos da Ocorrência de Rateio de Crédito**
+Motivos para os códigos de ocorrência do registro Tipo 1, posições 109 a 110.
+
+#### Ocorrência 02 - Entrada Confirmada - Motivos (Rateio)
+- **00..** Remessa para Rateio Aceita, Título Aguardando Rateio
+- **01..** Conta Beneficiário Inválida para Banco 237
+- **02..** Remessa Rat. Rejeitada, posição 105 diferente de “R” e acompanha tipo 3
+- **03..** Remessa Rat. Rejeitada, posição 105 igual a "R" e não acompanha tipo 3
+- **04..** Remessa Rat. Rejeitada, posição 105 diferente de "R" ou branco
+- **05..** Empresa Inativa para Rateio
+- **06..** Beneficiário Inativo para Rateio
+- **08..** Código de Cálculo de Rateio Diferente de 1, 2 ou 3
+- **09..** Banco Agência Conta Beneficiário não Numérico
+- **11..** Valor Rateio Informado não Numérico
+- **12..** Percentual de Rateio Informado não Numérico
+- **13..** Tipo de Valor Informado Diferente de 1 ou 2
+- **14..** Banco não Participante do Rateio, Banco Diferente de 237
+- **16..** Dígito Agência Beneficiário não Confere, para Banco 237
+- **17..** Dígito Conta Beneficiário não Confere, para Banco 237
+- **18..** Banco/Agência/Conta Beneficiário igual a Zeros
+- **20..** Nome Beneficiários Excedeu 90
+- **23..** Floating Beneficiário Superior a 30 Dias
+- **24..** Cód.Cálculo 1 (Valor Cobrado) e Beneficiário não Inf.em Percentual
+- **26..** Beneficiários Informados em Percentual e Outros em Valor
+- **27..** Somatória dos Valores dos Beneficiários Excedeu Valor do Título
+- **28..** Somatória dos Percentuais dos Beneficiários Excedeu 100%
+- **32..** Empresa Bloqueada para Rateio
+- **33..** Beneficiário Bloqueado para Rateio
+- **43..** Ocorrência não Possui Rateio
+- **44..** Título já Cadastrado para Rateio
+- **45..** Número do Título Inválido
+- **46..** Conta Beneficiário Inválida
+
+#### Ocorrências 03 e 24 - Entradas Rejeitadas e Entrada Rejeitada por CEP Irregular - Motivo
+- **07..** Título Rejeitado na Cobrança
+
+#### Ocorrências 06 e 15 - Liquidações Normais e Liquidação em Cartório - Motivos
+- **38..** Rateio Efetuado, Beneficiário Aguardando Crédito
+- **39..** Rateio Efetuado, Beneficiário já Creditado
+- **40..** Rateio não Efetuado, Conta Débito Beneficiário Bloqueada
+- **41..** Rateio não Efetuado, Conta Beneficiário Encerrada, para Banco 237
+- **42..** Rateio não Efetuado, Código Cálculo 2 (Valor Registro) e (Valor Pago Menor)
+- **43..** Ocorrência não Possui Rateio.
+
+#### Ocorrência 09 e 10 - Baixa a Pedido do Cliente ou pela Agência - Motivos
+- **37..** Cancelamento de Rateio por Motivo de Baixa Comandada
+- **43..** Ocorrência não Possui Rateio
+
+#### Ocorrências 68 - Acerto dos Dados do Rateio de Crédito - Motivos
+- **00..** Remessa para Rateio Aceita, Título Aguardando Rateio
+- **01..** Conta Beneficiário Inválida, para o Banco 237
+- **02..** Rateio Rejeitada, posição 105 diferente de R" e acompanha tipo 3
+- **03..** Rateio Rejeitada, posição 105 igual a R”, e não acompanhar tipo 3
+- **04..** Rateio Rejeitada, posição 105 diferente de R" ou branco
+- **05..** Empresa Inativa para Rateio
+- **06..** Beneficiário Inativo para Rateio
+- **08..** Código de Cálculo de Rateio Diferente de 1, 2 ou 3
+- **09..** Banco/Agência/Conta Beneficiário não Numérico
+- **10..** Agência/Razão/Conta Beneficiário não Numérico
+- **11..** Valor Rateio Informado não Numérico
+- **12..** Percentual de Rateio não Numérico
+- **13..** Tipo de Valor Informado Diferente de 1 ou 2
+- **14..** Banco não Participante do Rateio, Banco Diferente de 237
+- **15..** Informado Percentual e Valor no Mesmo Beneficiário
+- **16..** Dígito Agência Beneficiário não Confere, para Banco 237
+- **17..** Dígito Conta Beneficiário não Confere, para Banco 237
+- **18..** Banco Agência Conta Beneficiário igual a Zeros
+- **19..** Agência/Razão/Conta Beneficiário igual a Zeros
+- **20..** Nome de Beneficiários não Informado
+- **21..** Quantidade de Beneficiários Excedeu 90
+- **22..** Quantidade de Beneficiários Excedeu 4 (Layout Velho)
+- **23..** Floating beneficiário superior a 30 dias
+- **24..** Código Cálculo 1 (Valor Cobrado) e Benef. não Informado em Percentual
+- **25..** Beneficiário com Códigos de Cálculo de Rateio Diferentes
+- **26..** Beneficiários Informados em Percentual e Outros em Valor
+- **27..** Somatória dos Valores dos Beneficiários Excedeu Valor do Título
+- **28..** Somatória dos Percentuais dos Beneficiários Excedeu 100%
+- **29..** Efetuado Acerto no Rateio
+- **30..** Acerto no Rateio Rejeitado, Empresa não Participante
+- **31..** Acerto no Rateio Rejeitado, Beneficiário não Participante
+- **32..** Empresa Bloqueada para Rateio
+- **33..** Beneficiário Bloqueado para Rateio
+- **34..** Acerto de Rateio Rejeitado, Título não Registrado na Cobrança
+- **35..** Título não Cadastrado para Rateio, Efetuada a Inclusão
+- **43..** Ocorrência não Possui Rateio
+- **44..** Título já Cadastrado para Rateio
+- **45..** Número do Título Inválido
+- **46..** Conta Beneficiário Inválida
+- **48..** Acerto Rejeitado, Título já Rateado ou Baixado
+
+#### Ocorrência 69 - Cancelamento de Rateio - Motivos
+- **04..** Remessa Rat. Rejeitado, posição 105 diferente de "R" ou branco
+- **05..** Empresa Inativa para Rateio
+- **06..** Beneficiário Inativo para Rateio
+- **32..** Empresa Bloqueada para Rateio
+- **33..** Beneficiário Bloqueado para Rateio
+- **36..** Cancelamento de Rateio Efetuado
+- **43..** Ocorrência não Possui Rateio
+- **45..** Número do Título Inválido
+- **46..** Conta Beneficiário Inválida
+- **47..** Cancelamento de Rateio Rejeitado, Título não Registrado na Cobrança
+- **49..** Cancelamento Rejeitado, Título não Registrado no Rateio
+- **50..** Cancelamento Rejeitado, Título já Rateado
