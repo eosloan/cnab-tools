@@ -5,6 +5,10 @@
   "module": "./dist/index.mjs",
   "main": "./dist/index.js",
   "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
     "./bmp-444": {
       "import": "./dist/bmp-444.mjs",
       "require": "./dist/bmp-444.js"
