@@ -33,7 +33,7 @@ describe("itau-400", () => {
     },
   );
 
-  it.only("parse retorno detail 1", () => {
+  it("parse retorno detail 1", () => {
     const line =
       "102cnpjcnpj0001cnaaaa00ccccc0        273027745738             25011768            109250117688             I092407252730277   25011768            26032500000001591453417788315000000000013500000000000000000000000000000000000000000000000000000000000000000000000000013500000000000000000000000000         00000000000000000000000NOME DO PAGADOR                                                       000003";
     expect(parseRetornoDetail1(line)).toStrictEqual({
