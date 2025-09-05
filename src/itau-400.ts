@@ -305,7 +305,7 @@ export function parse(input: Buffer | string) {
 
   if (lines[0][1] === "1") {
     return parseRemessa(lines, layout);
-  } else if (lines[0][1] === "0") {
+  } else if (lines[0][1] === "2") {
     return parseRetorno(lines, layout);
   } else {
     throw new UnsupportedLayoutError({

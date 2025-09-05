@@ -72,4 +72,13 @@ describe("itau-400", () => {
       yourNumber: "273027745738             ",
     });
   });
+
+  it("can parse retorno without error", async () => {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const retPath = path.resolve(__dirname, "RETORNO.RET");
+    const original = await fs.readFile(retPath, "utf8");
+
+    parse(original);
+  });
 });
