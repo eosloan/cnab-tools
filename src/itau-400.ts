@@ -287,7 +287,7 @@ export function parseRetorno(
   }
 
   return {
-    type: "REMESSA",
+    type: "RETORNO",
     layout: "400",
     entries,
   };
