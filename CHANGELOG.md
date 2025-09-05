@@ -1,5 +1,13 @@
 # @eosloan/cnab-tools
 
+## 0.1.6
+
+### Patch Changes
+
+- 4c786ab: Adicionado parse de detalhe de retorno do Itau 400
+- 4c786ab: Corrigido parse de retorno
+- 4c786ab: Corrigido parse de arquivo retorno
+
 ## 0.1.5
 
 ### Patch Changes
