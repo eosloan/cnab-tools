@@ -117,8 +117,38 @@ export type ItauCnab400RetornoHeader = {
 };
 
 export type ItauCnab400RetornoDetail1 = {
-  recordType: "1";
-  // TODO: Add all fields as per spec
+  recordType: "1"; // 1
+  payerTaxIdType: string; // 2
+  payerTaxId: string; // 14
+  agency: string; // 4
+  account: string; // 5
+  dac: string; // 1
+  yourNumber: string; // 25
+  ourNumber: string; // 8
+  walletNumber: string; // 3
+  dacOurNumber: string; // 1
+  occurrenceCode: string; // 2
+  occurrenceDate: string; // 6 (DDMMAA)
+  documentNumber: string; // 10
+  dueDate: string; // 6 (DDMMAA)
+  amount: string; // 13 (11+2)
+  bankCode: string; // 3
+  chargingAgency: string; // 5
+  chargingAgencyDac: string; // 1
+  species: string; // 2
+  chargingCost: string; // 13 (11+2)
+  iofAmount: string; // 13 (11+2)
+  downPaymentAmount: string; // 13 (11+2)
+  discountAmount: string; // 13 (11+2)
+  principalAmount: string; // 13 (11+2)
+  moraAmount: string; // 13 (11+2)
+  otherCreditAmount: string; // 13 (11+2)
+  bankslipDDA: string; // 1
+  creditDate: string; // 6 (DDMMAA)
+  cancelledInstructionCode: string; // 4
+  payerName: string; // 30
+  errorCodes: string; // 8
+  liquidationCode: string; // 2
   sequentialNumber: string; // 6
 };
 
@@ -416,6 +446,37 @@ export function parseRetornoHeader(line: string): ItauCnab400RetornoHeader {
 export function parseRetornoDetail1(line: string): ItauCnab400RetornoDetail1 {
   return {
     recordType: "1",
+    payerTaxIdType: line.substring(1, 3),
+    payerTaxId: line.substring(3, 17),
+    agency: line.substring(17, 21),
+    account: line.substring(23, 28),
+    dac: line[28],
+    yourNumber: line.substring(37, 62),
+    ourNumber: line.substring(62, 70),
+    walletNumber: line.substring(82, 85),
+    dacOurNumber: line[93],
+    occurrenceCode: line.substring(108, 110),
+    occurrenceDate: line.substring(110, 116),
+    documentNumber: line.substring(116, 126),
+    dueDate: line.substring(146, 152),
+    amount: line.substring(152, 165),
+    bankCode: line.substring(165, 168) as "341",
+    chargingAgency: line.substring(168, 172),
+    chargingAgencyDac: line[172],
+    species: line.substring(173, 175),
+    chargingCost: line.substring(175, 188),
+    iofAmount: line.substring(214, 227),
+    downPaymentAmount: line.substring(227, 240),
+    discountAmount: line.substring(240, 253),
+    principalAmount: line.substring(253, 266),
+    moraAmount: line.substring(266, 279),
+    otherCreditAmount: line.substring(279, 292),
+    bankslipDDA: line.substring(292, 293),
+    creditDate: line.substring(295, 301),
+    cancelledInstructionCode: line.substring(301, 305),
+    payerName: line.substring(324, 354),
+    errorCodes: line.substring(377, 385),
+    liquidationCode: line.substring(392, 394),
     sequentialNumber: line.substring(394, 400),
   };
 }
