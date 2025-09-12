@@ -4,6 +4,8 @@ import {
   parse,
   calculateDacAgenciaConta,
   parseRetornoDetail1,
+  generateCodigoBarras,
+  calculateDueFactor,
 } from "../../src/itau-400";
 
 describe("itau-400", () => {
@@ -80,5 +82,33 @@ describe("itau-400", () => {
     const original = await fs.readFile(retPath, "utf8");
 
     parse(original);
+  });
+
+  it.each([
+    { date: new Date("2000-07-03"), expected: "1000" },
+    { date: new Date("2000-07-04"), expected: "1001" },
+    { date: new Date("2000-07-05"), expected: "1002" },
+    { date: new Date("2000-07-06"), expected: "1003" },
+    { date: new Date("2000-07-07"), expected: "1004" },
+    { date: new Date("2002-05-01"), expected: "1667" },
+    { date: new Date("2010-11-17"), expected: "4789" },
+    { date: new Date("2025-02-21"), expected: "9999" },
+    { date: new Date("2025-02-22"), expected: "1000" },
+    { date: new Date("2025-02-23"), expected: "1001" },
+  ])("should calculate due factor for date $date", ({ date, expected }) => {
+    expect(calculateDueFactor(date)).toBe(expected);
+  });
+
+  it("generate barcode", () => {
+    expect(
+      generateCodigoBarras(
+        "109",
+        "12345678",
+        "1234",
+        "56789",
+        "10000",
+        new Date("2000-07-03"),
+      ),
+    ).toBe("34194100000000100001091234567841234567897000");
   });
 });

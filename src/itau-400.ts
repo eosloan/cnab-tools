@@ -757,13 +757,40 @@ export function calculateDacCampoLivre(
 }
 
 /**
+ * Calcula o fator de vencimento para boletos bancários, conforme padrão Febraban.
+ * O fator de vencimento é o número de dias decorridos desde a data base (03/07/2000),
+ * módulo 9000, somado a 1000, e preenchido à esquerda com zeros para 4 dígitos.
+ *
+ * @param dueDate - Data de vencimento como objeto Date (UTC).
+ * @returns O fator de vencimento com 4 dígitos, como string.
+ *
+ * Exemplo:
+ *   calculateDueFactor(new Date("2000-07-03")) // "1000"
+ *   calculateDueFactor(new Date("2025-02-21")) // "9999"
+ */
+export function calculateDueFactor(dueDate: Date): string {
+  const base = Date.UTC(2000, 6, 3);
+  const actualDate = Date.UTC(
+    dueDate.getUTCFullYear(),
+    dueDate.getUTCMonth(),
+    dueDate.getUTCDate(),
+  );
+  const daysDiff = Math.floor((actualDate - base) / (1000 * 60 * 60 * 24));
+  const cycle = ((daysDiff % 9000) + 9000) % 9000;
+  const factor = 1000 + cycle;
+  const dueFactor = factor.toString().padStart(4, "0");
+
+  return dueFactor;
+}
+
+/**
  * Gera o código de barras completo (44 posições)
  * @param carteira - Código da carteira (3 dígitos)
  * @param nossoNumero - Nosso número (8 dígitos)
  * @param agencia - Código da agência (4 dígitos)
  * @param conta - Código da conta (5 dígitos)
  * @param valor - Valor do título (sem vírgula, ex: 12345 para R$ 123,45)
- * @param fatorVencimento - Fator de vencimento (4 dígitos)
+ * @param vencimento - Data de vencimento
  * @returns O código de barras completo de 44 posições
  */
 export function generateCodigoBarras(
@@ -772,7 +799,7 @@ export function generateCodigoBarras(
   agencia: string,
   conta: string,
   valor: string,
-  fatorVencimento: string,
+  vencimento: Date,
 ): string {
   // 1-3: Código do Banco (341)
   const codigoBanco = "341";
@@ -780,41 +807,33 @@ export function generateCodigoBarras(
   // 4-4: Código da Moeda (9 para Real)
   const codigoMoeda = "9";
 
-  // 5-5: DAC do Código de Barras (será calculado)
-  const dacPlaceholder = "0";
-
   // 6-9: Fator de Vencimento
-  const fatorVenc = fatorVencimento.padStart(4, "0");
+  const fatorVenc = calculateDueFactor(vencimento);
 
   // 10-19: Valor do Título (com 2 casas decimais)
-  const valorFormatado = valor.padStart(10, "0");
+  const valorFormatado = valor.padStart(10, "0").slice(-10);
 
   // 20-44: Campo Livre
   const dacNossoNumero = calculateDacNossoNumero(
     agencia,
     conta,
     carteira,
-    nossoNumero,
+    nossoNumero.padStart(8, "0").slice(-8),
   );
   const dacAgenciaConta = calculateDacAgenciaConta(agencia, conta);
 
   const campoLivre =
-    carteira.padStart(3, "0") +
-    nossoNumero.padStart(8, "0") +
+    carteira.padStart(3, "0").slice(-3) +
+    nossoNumero.padStart(8, "0").slice(-8) +
     dacNossoNumero +
-    agencia.padStart(4, "0") +
-    conta.padStart(5, "0") +
+    agencia.padStart(4, "0").slice(-4) +
+    conta.padStart(5, "0").slice(-5) +
     dacAgenciaConta +
     "000"; // Zeros
 
   // Montar código de barras sem o DAC (43 posições)
   const codigoBarras43Digitos =
-    codigoBanco +
-    codigoMoeda +
-    dacPlaceholder +
-    fatorVenc +
-    valorFormatado +
-    campoLivre;
+    codigoBanco + codigoMoeda + fatorVenc + valorFormatado + campoLivre;
 
   // Calcular DAC do código de barras
   const dacCodigoBarras = calculateDacCodigoBarras(codigoBarras43Digitos);
