@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.7
+
+### Patch Changes
+
+- 47e3e44: Corrigido cálculo do código de barras do Itau 400
+
 ## 0.1.6
 
 ### Patch Changes
