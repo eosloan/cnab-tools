@@ -6,6 +6,7 @@ import {
   parseRetornoDetail1,
   generateCodigoBarras,
   calculateDueFactor,
+  generateLinhaDigitavel,
 } from "../../src/itau-400";
 
 describe("itau-400", () => {
@@ -100,15 +101,31 @@ describe("itau-400", () => {
   });
 
   it("generate barcode", () => {
-    expect(
-      generateCodigoBarras(
-        "109",
-        "12345678",
-        "1234",
-        "56789",
-        "10000",
-        new Date("2000-07-03"),
-      ),
-    ).toBe("34194100000000100001091234567841234567897000");
+    const barcode = generateCodigoBarras(
+      "109",
+      "12345678",
+      "1234",
+      "56789",
+      "10000",
+      new Date("2000-07-03"),
+    );
+    expect(barcode).toHaveLength(44);
+    expect(barcode).toBe("34194100000000100001091234567841234567897000");
+  });
+
+  it("generate typeable line", () => {
+    const barcode = generateCodigoBarras(
+      "109",
+      "00004460",
+      "0000",
+      "00000",
+      "87777",
+      new Date("2025-09-17"),
+    );
+    const typeableLine = generateLinhaDigitavel(barcode);
+    expect(typeableLine.replace(/[^0-9]/g, "")).toHaveLength(47);
+    expect(typeableLine).toBe(
+      "34191.09008 00446.010001 00000.000000 5 12070000087777",
+    );
   });
 });
