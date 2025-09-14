@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.8
+
+### Patch Changes
+
+- 7679cd4: Corrigido cálculo da linha digitável do Itau 400
+
 ## 0.1.7
 
 ### Patch Changes
