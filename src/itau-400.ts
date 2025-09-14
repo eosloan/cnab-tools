@@ -860,13 +860,25 @@ export function generateLinhaDigitavel(codigoBarras: string): string {
     throw new Error("Código de barras deve ter exatamente 44 posições");
   }
 
+  const carteira = codigoBarras.substring(19, 22);
+  const nossoNumero = codigoBarras.substring(22, 30);
+  const agencia = codigoBarras.substring(31, 35);
+  const conta = codigoBarras.substring(35, 40);
+
+  const dacNossoNumero = calculateDacNossoNumero(
+    agencia,
+    conta,
+    carteira,
+    nossoNumero,
+  );
+  const dacConta = calculateDacRepresentacaoNumerica(conta);
+
   // Extrair campos do código de barras
-  const campo1Base =
-    codigoBarras.substring(0, 4) + codigoBarras.substring(19, 24);
-  const campo2Base = codigoBarras.substring(24, 34);
-  const campo3Base = codigoBarras.substring(34, 44);
+  const campo1Base = `3419${carteira}${nossoNumero.slice(0, 2)}`;
+  const campo2Base = `${nossoNumero.slice(2, 8)}${dacNossoNumero}${agencia.slice(0, 3)}`;
+  const campo3Base = `${agencia.slice(3, 4)}${conta}${dacConta}000`;
   const campo4 = codigoBarras.substring(4, 5); // DAC do código de barras
-  const campo5 = codigoBarras.substring(5, 9) + codigoBarras.substring(10, 20); // Fator + Valor
+  const campo5 = codigoBarras.substring(5, 9) + codigoBarras.substring(9, 19); // Fator + Valor
 
   // Calcular DACs dos campos
   const dacCampo1 = calculateDacRepresentacaoNumerica(campo1Base);
@@ -886,11 +898,11 @@ export function generateLinhaDigitavel(codigoBarras: string): string {
     " " +
     campo2.substring(0, 5) +
     "." +
-    campo2.substring(5, 10) +
+    campo2.substring(5, 11) +
     " " +
     campo3.substring(0, 5) +
     "." +
-    campo3.substring(5, 10) +
+    campo3.substring(5, 11) +
     " " +
     campo4 +
     " " +
