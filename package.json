@@ -1,6 +1,6 @@
 {
   "name": "@eosloan/cnab-tools",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Biblioteca para trabalhar com CNAB dos principais bancos do Brasil",
   "module": "./dist/index.mjs",
   "main": "./dist/index.js",
@@ -17,11 +17,10 @@
       "import": "./dist/itau-400.mjs",
       "require": "./dist/itau-400.js"
     },
-      "./bradesco-400": {
-        "import": "./dist/bradesco-400.mjs",
-        "require": "./dist/bradesco-400.js"
+    "./bradesco-400": {
+      "import": "./dist/bradesco-400.mjs",
+      "require": "./dist/bradesco-400.js"
     }
-
   },
   "files": [
     "dist",
