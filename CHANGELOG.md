@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.9
+
+### Patch Changes
+
+- a917f58: Adicionado pacote funcoes Bradesco
+
 ## 0.1.8
 
 ### Patch Changes
