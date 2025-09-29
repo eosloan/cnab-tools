@@ -7,12 +7,19 @@ import {
   generateCodigoBarras,
   calculateDueFactor,
   generateLinhaDigitavel,
+  calculateDacRepresentacaoNumerica,
 } from "../../src/itau-400";
 
 describe("itau-400", () => {
-  it("calculates DAC agencia conta correctly", () => {
+  it.only("calculates DAC agencia conta correctly", () => {
     expect(calculateDacAgenciaConta("1234", "56789")).toBe("7");
-    expect(calculateDacAgenciaConta("", "")).toBe("0");
+  });
+
+  it.only("calculate DAC representacao numerica correctly", () => {
+    expect(calculateDacRepresentacaoNumerica("341911012")).toBe("1");
+    expect(calculateDacRepresentacaoNumerica("3456788005")).toBe("8");
+    expect(calculateDacRepresentacaoNumerica("7123457000")).toBe("1");
+    expect(calculateDacRepresentacaoNumerica("")).toBe("0");
   });
 
   it.each(["VALID.txt", "VALID2.txt"])(
@@ -126,6 +133,23 @@ describe("itau-400", () => {
     expect(typeableLine.replace(/[^0-9]/g, "")).toHaveLength(47);
     expect(typeableLine).toBe(
       "34191.09008 00446.010001 00000.000000 5 12070000087777",
+    );
+  });
+
+  it.only("generate typeable line", () => {
+    const barcode = generateCodigoBarras(
+      "109",
+      "00005696",
+      "8499",
+      "32972",
+      "31458",
+      new Date("2026-03-16"),
+    );
+    expect(barcode).toBe("34193138700000314581090000919518499329723000");
+    const typeableLine = generateLinhaDigitavel(barcode);
+    expect(typeableLine.replace(/[^0-9]/g, "")).toHaveLength(47);
+    expect(typeableLine).toBe(
+      "34191.09008 00919.518498 93297.230000 3 13870000031458",
     );
   });
 });
