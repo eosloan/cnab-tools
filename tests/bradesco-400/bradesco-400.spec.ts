@@ -23,20 +23,9 @@ describe("bradesco-400", () => {
     });
 
     it("calculates DAC nosso numero correctly", () => {
-      // Test regular carteira
-      expect(calculateDacNossoNumero("1234", "56789", "109", "12345678")).toBe(
-        "1",
-      );
-
-      // Test special carteira 126
-      expect(calculateDacNossoNumero("1234", "56789", "126", "12345678")).toBe(
-        "0",
-      );
-
-      // Test special carteira 131
-      expect(calculateDacNossoNumero("1234", "56789", "131", "12345678")).toBe(
-        "0",
-      );
+      expect(calculateDacNossoNumero("19", "00000000002")).toBe("8");
+      expect(calculateDacNossoNumero("19", "00000000001")).toBe("P");
+      expect(calculateDacNossoNumero("19", "00000000006")).toBe("0");
     });
   });
 

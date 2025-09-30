@@ -1119,39 +1119,18 @@ export function calculateDacAgenciaConta(
 /**
  * Calcula o DAC do Nosso Número do Bradesco (Módulo 11 base 7)
  * Conforme documentação: Carteira (3) + Nosso Número (11)
- * Algumas carteiras especiais (126, 131, 146, 150, 168) usam apenas Carteira + Nosso Número
- * Outras carteiras usam Agência + Conta + Carteira + Nosso Número
  *
- * @param agencia - Código da agência (4 dígitos)
- * @param conta - Código da conta (7 dígitos)
  * @param carteira - Código da carteira (3 dígitos)
  * @param nossoNumero - Nosso número (11 dígitos)
- * @returns O DAC calculado (string, pode ser "P" se resultado for 10)
+ * @returns O DAC calculado (string)
  */
 export function calculateDacNossoNumero(
-  agencia: string,
-  conta: string,
   carteira: string,
   nossoNumero: string,
 ): string {
-  // Carteiras especiais que usam apenas Carteira + Nosso Número
-  const carteirasEspeciais = ["126", "131", "146", "150", "168"];
-
-  let baseCalculo: string;
-
-  if (carteirasEspeciais.includes(carteira.padStart(3, "0").slice(-3))) {
-    // Exceção: A base é apenas Carteira + Nosso Número
-    baseCalculo =
-      carteira.padStart(3, "0").slice(-3) +
-      nossoNumero.padStart(11, "0").slice(-11);
-  } else {
-    // Regra geral: Agência + Conta + Carteira + Nosso Número
-    baseCalculo =
-      agencia.padStart(4, "0").slice(-4) +
-      conta.padStart(7, "0").slice(-7) +
-      carteira.padStart(3, "0").slice(-3) +
-      nossoNumero.padStart(11, "0").slice(-11);
-  }
+  const baseCalculo =
+    carteira.padStart(3, "0").slice(-3) +
+    nossoNumero.padStart(11, "0").slice(-11);
 
   // Sequência de pesos: 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, ...
   const pesos = [2, 3, 4, 5, 6, 7];
