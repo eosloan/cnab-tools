@@ -1,5 +1,12 @@
 # @eosloan/cnab-tools
 
+## 0.1.11
+
+### Patch Changes
+
+- dd3d5ea: Corrigido cálculo de DAC Nosso Número Bradesco
+- dd3d5ea: Parse e geração de cnab 400 do Bradesco
+
 ## 0.1.10
 
 ### Patch Changes
