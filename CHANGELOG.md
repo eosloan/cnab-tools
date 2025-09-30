@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.10
+
+### Patch Changes
+
+- 4649eef: Parse e geração de cnab 400 do Bradesco
+
 ## 0.1.9
 
 ### Patch Changes
