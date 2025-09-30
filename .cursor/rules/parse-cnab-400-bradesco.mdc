@@ -1,0 +1,378 @@
+---
+alwaysApply: false
+---
+
+# Guia Detalhado: Parse CNAB 400 Bradesco
+
+[cite_start]A seguir, um guia detalhado para a interpretação de arquivos CNAB Bradesco no layout 400, com base no "Manual de Procedimentos Operacionais para Troca de Arquivos" de Março/2023[cite: 6].
+
+## Sumário
+
+* **Visão Geral**
+* **Estrutura do Arquivo**
+* **Arquivo-Remessa (Envio ao Banco)**
+    * [cite_start]Registro Header (Tipo 0) [cite: 128]
+    * [cite_start]Registro de Transação (Tipo 1) [cite: 133]
+    * [cite_start]Registro de Transação (Tipo 2 - Mensagem Opcional) [cite: 144, 146]
+    * [cite_start]Registro de Transação (Tipo 3 - Rateio de Crédito Opcional) [cite: 150]
+    * [cite_start]Registro de Transação (Tipo 6 - Múltiplas Transferências / Débito Automático) [cite: 158]
+    * [cite_start]Registro de Transação (Tipo 7 - Beneficiário Final Opcional) [cite: 176, 177, 178, 179]
+    * [cite_start]Registro Trailer (Tipo 9) [cite: 179]
+* **Arquivo-Retorno (Recebimento do Banco)**
+    * [cite_start]Registro Header (Tipo 0) [cite: 394, 395]
+    * [cite_start]Registro de Transação (Tipo 1) [cite: 396, 397, 398, 399, 400, 401, 402]
+    * [cite_start]Registro de Transação (Tipo 3 - Rateio de Crédito) [cite: 403, 404, 405, 406, 407, 408, 409]
+    * [cite_start]Registro de Transação (Tipo 4 - QR CODE) [cite: 413, 414]
+    * [cite_start]Registro Trailer (Tipo 9) [cite: 415, 416, 417, 418]
+* **Informações Complementares**
+    * [cite_start]Notas sobre o Arquivo-Remessa [cite: 180, 181, 182]
+    * [cite_start]Cálculo do Dígito de Autoconferência do Nosso Número [cite: 212]
+    * [cite_start]Código de Barras e Linha Digitável [cite: 295, 317, 333]
+    * [cite_start]Fator de Vencimento [cite: 388]
+    * [cite_start]Notas sobre o Arquivo-Retorno [cite: 420]
+
+---
+
+### **Visão Geral**
+
+[cite_start]Este documento detalha o layout CNAB 400 do Bradesco para a troca de arquivos de cobrança[cite: 3, 4]. [cite_start]Ele abrange tanto o envio de informações (Arquivo-Remessa) quanto o recebimento de atualizações (Arquivo-Retorno)[cite: 18]. [cite_start]A formatação do arquivo é sequencial, em texto plano, com cada registro possuindo 400 bytes[cite: 93, 109].
+
+### **Estrutura do Arquivo**
+
+Tanto os arquivos de remessa quanto os de retorno são compostos por três tipos principais de registros:
+
+* [cite_start]**Registro Header (Tipo 0):** O primeiro registro do arquivo, contendo informações de identificação[cite: 96, 103].
+* **Registro de Detalhe (Transação):** Contém os detalhes dos títulos de cobrança e outras instruções. [cite_start]Podem existir múltiplos registros de detalhe em um arquivo[cite: 97, 104].
+* [cite_start]**Registro Trailer (Tipo 9):** O último registro do arquivo, utilizado para a totalização e finalização[cite: 101, 107].
+
+---
+
+### **Arquivo-Remessa (Envio ao Banco)**
+
+#### **Registro Header (Tipo 0)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]0 [cite: 128] |
+| 002 a 002 | Identificação do Arquivo-Remessa | 001 | [cite_start]1 [cite: 128] |
+| 003 a 009 | Literal Remessa | 007 | [cite_start]REMESSA [cite: 128] |
+| 010 a 011 | Código de Serviço | 002 | [cite_start]01 [cite: 128] |
+| 012 a 026 | Literal Serviço | 015 | [cite_start]COBRANCA [cite: 128] |
+| 027 a 046 | Código da Empresa | 020 | [cite_start]Será fornecido pelo Bradesco [cite: 128] |
+| 047 a 076 | Nome da Empresa | 030 | [cite_start]Razão Social [cite: 128] |
+| 077 a 079 | Número do Bradesco na Câmara de Compensação | 003 | [cite_start]237 [cite: 128] |
+| 080 a 094 | Nome do Banco por Extenso | 015 | [cite_start]Bradesco [cite: 128] |
+| 095 a 100 | Data da Gravação do Arquivo | 006 | [cite_start]DDMMAA [cite: 128] |
+| 101 a 108 | Branco | 008 | [cite_start]Branco [cite: 128] |
+| 109 a 110 | Identificação do Sistema | 002 | [cite_start]MX [cite: 128] |
+| 111 a 117 | Nº Sequencial de Remessa | 007 | [cite_start]Sequencial [cite: 128] |
+| 118 a 394 | Branco | 277 | [cite_start]Branco [cite: 128] |
+| 395 a 400 | Nº Sequencial do Registro de Um em Um | 006 | [cite_start]000001 [cite: 128] |
+
+#### **Registro de Transação (Tipo 1)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]1 [cite: 133] |
+| 002 a 006 | Agência de Débito (opcional) | 005 | [cite_start]Código da Agência do Pagador Exclusivo para Débito em Conta [cite: 133] |
+| 007 a 007 | Dígito da Agência de Débito (opcional) | 001 | [cite_start]Dígito da Agência do Pagador [cite: 133] |
+| 008 a 012 | Razão da Conta-Corrente (opcional) | 005 | [cite_start]Razão da Conta do Pagador [cite: 133] |
+| 013 a 019 | Conta-Corrente (opcional) | 007 | [cite_start]Número da Conta do Pagadora [cite: 136] |
+| 020 a 020 | Dígito da Conta-Corrente (opcional) | 001 | [cite_start]Dígito da Conta do Pagador [cite: 136] |
+| 021 a 037 | Identificação da Empresa Beneficiária no Banco | 017 | [cite_start]Zero, Carteira, Agência e Conta - Corrente [cite: 136] |
+| 038 a 062 | Nº Controle do Participante | 025 | [cite_start]Uso da Empresa [cite: 136] |
+| 063 a 065 | Código do Banco a ser debitado na Câmara de Compensação | 003 | [cite_start]Nº do Banco "237" [cite: 136] |
+| 066 a 066 | Campo de Multa | 001 | $Se=2$ considerar percentual de multa. [cite_start]$se=0$, sem multa[cite: 136]. |
+| 067 a 070 | Percentual de Multa | 004 | [cite_start]Percentual de multa a ser considerado [cite: 136] |
+| 071 a 081 | Identificação do Título no Banco | 11 | [cite_start]Número Bancário para Cobrança Com Registro [cite: 136] |
+| 082 a 082 | Dígito de Autoconferência do Número Bancário | 001 | [cite_start]Digito N/N [cite: 136] |
+| 083 a 092 | Desconto Bonificação por dia | 010 | [cite_start]Valor do desconto bonif./dia. [cite: 136] |
+| 093 a 093 | Condição para Emissão da Papeleta de Cobrança | 001 | 1= Banco emite e processa o registro. [cite_start]2= Cliente emite e o Banco somente processa o registro[cite: 136]. |
+| 094 a 094 | Ident. se emite Boleto para Débito Automático | 001 | $N=$ Não registra na cobrança. [cite_start]Diferente de N registra e emite Boleto[cite: 136]. |
+| 095 a 104 | Identificação da Operação do Banco | 010 | [cite_start]Brancos [cite: 136] |
+| 105 a 105 | Indicador Rateio Crédito (opcional) | 001 | [cite_start]"R" [cite: 136] |
+| 106 a 106 | Endereçamento para Aviso do Débito Automático | 001 | (Vide manual para opções) [cite_start][cite: 136] |
+| 107 a 108 | Quantidade de Pagamentos | 002 | (Vide manual para opções) [cite_start][cite: 136] |
+| 109 a 110 | Identificação da Ocorrência | 002 | [cite_start]Códigos de Ocorrência [cite: 136] |
+| 111 a 120 | Nº do Documento | 010 | [cite_start]Documento [cite: 136] |
+| 121 a 126 | Data do Vencimento do Título | 006 | [cite_start]DDMMAA [cite: 136] |
+| 127 a 139 | Valor do Título | 013 | [cite_start]Valor do Título (preencher sem ponto e sem virgula) [cite: 136] |
+| 140 a 142 | Banco Encarregado da Cobrança | 003 | [cite_start]Preencher com zeros [cite: 136] |
+| 143 a 147 | Agência Depositária | 005 | [cite_start]Preencher com zeros [cite: 136] |
+| 148 a 149 | Espécie de Título | 002 | [cite_start]01-Duplicata, 02-Nota Promissória, 03-Nota de Seguro, 05-Recibo, 10-Letras de Câmbio, 11-Nota de Débito, 12-Duplicata de Serv., 31-Cartão de Crédito, 32-Boleto de Proposta, 33-Depósito e Aporte, 99-Outros [cite: 138] |
+| 150 a 150 | Identificação | 001 | [cite_start]Sempre = N [cite: 138] |
+| 151 a 156 | Data da Emissão do Título | 006 | [cite_start]DDMMAA [cite: 138] |
+| 157 a 158 | 1ª Instrução | 002 | [cite_start]Vide Obs. [cite: 138] |
+| 159 a 160 | 2ª Instrução | 002 | [cite_start]Vide Obs. [cite: 138] |
+| 161 a 173 | Valor a ser Cobrado por Dia de Atraso | 013 | [cite_start]Mora por Dia de Atraso [cite: 138] |
+| 174 a 179 | Data Limite P/Concessão de Desconto | 006 | [cite_start]DDMMAA [cite: 138] |
+| 180 a 192 | Valor do Desconto | 013 | [cite_start]Valor Desconto [cite: 138] |
+| 193 a 205 | Valor do IOF | 013 | [cite_start]Valor do IOF [cite: 138] |
+| 206 a 218 | Valor do Abatimento a ser Concedido ou Cancelado | 013 | [cite_start]Valor Abatimento [cite: 138] |
+| 219 a 220 | Identificação do Tipo de Inscrição do Pagador | 002 | [cite_start]01-CPF, 02-CNPJ [cite: 138] |
+| 221 a 234 | Nº Inscrição do Pagador | 014 | [cite_start]CNPJ/CPF (Preenchimento obrigatório) [cite: 138] |
+| 235 a 274 | Nome do Pagador | 040 | [cite_start]Nome do Pagador [cite: 138] |
+| 275 a 314 | Endereço Completo | 040 | [cite_start]Endereço do Pagador [cite: 138] |
+| 315 a 326 | 1ª Mensagem | 012 | (Livre) [cite_start][cite: 138] |
+| 327 a 331 | CEP | 005 | [cite_start]CEP Pagador [cite: 138] |
+| 332 a 334 | Sufixo do CEP | 003 | [cite_start]Sufixo [cite: 138] |
+| 335 a 394 | Beneficiário Final ou 2a Mensagem | 060 | [cite_start]Decomposição [cite: 138] |
+| 395 a 400 | Nº Sequencial do Registro | 006 | [cite_start]Nº Sequencial do Registro [cite: 138] |
+
+#### **Registro de Transação (Tipo 2 - Mensagem Opcional)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Tipo Registro | 001 | [cite_start]2 [cite: 144] |
+| 002 a 081 | Mensagem 1 | 080 | [cite_start]Mensagem [cite: 146] |
+| 082 a 161 | Mensagem 2 | 080 | [cite_start]Mensagem [cite: 146] |
+| 162 a 241 | Mensagem 3 | 080 | [cite_start]Mensagem [cite: 146] |
+| 242 a 321 | Mensagem 4 | 080 | [cite_start]Mensagem [cite: 146] |
+| 322 a 327 | Data-Limite para Concessão de Desconto 2 | 006 | [cite_start]DDMMAA [cite: 146] |
+| 328 a 340 | Valor do Desconto 2 | 013 | [cite_start]Valor Desconto [cite: 146] |
+| 341 a 346 | Data-Limite para Concessão de Desconto 3 | 006 | [cite_start]DDMMAA [cite: 146] |
+| 347 a 359 | Valor do Desconto 3 | 013 | [cite_start]Valor do Desconto [cite: 146] |
+| 360 a 366 | Reserva | 007 | [cite_start]Filler [cite: 146] |
+| 367 a 369 | Carteira | 003 | [cite_start]Nº da Carteira [cite: 146] |
+| 370 a 374 | Agência | 005 | [cite_start]Código da Agência Beneficiário [cite: 146, 147] |
+| 375 a 381 | Conta-Corrente | 007 | [cite_start]Nº da Conta-Corrente [cite: 147] |
+| 382 a 382 | Dígito C/C | 001 | [cite_start]DAC C/C [cite: 147] |
+| 383 a 393 | Nosso Número | 011 | [cite_start]Número Bancário [cite: 147] |
+| 394 a 394 | DAC Nosso Número | 001 | [cite_start]Dígito [cite: 147] |
+| 395 a 400 | Nº Sequencial de Registro | 006 | [cite_start]Nº Sequencial de Registro [cite: 147] |
+
+#### **Registro de Transação (Tipo 3 - Rateio de Crédito Opcional)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]Fixo “3” [cite: 150] |
+| 002 a 017 | Identificação da Empresa no Banco | 016 | [cite_start]Carteira, Agência, Conta Corrente [cite: 150] |
+| 018 a 029 | Identificação Título no Banco | 012 | [cite_start]Número Bancário [cite: 150] |
+| 030 a 030 | Código Para Cálculo do Rateio | 001 | [cite_start]“1”=Valor Cobrado, “2”=Valor do Registro, “3”=Rateio pelo Menor Valor [cite: 150] |
+| 031 a 031 | Tipo de Valor Informado | 001 | [cite_start]“1”= Percentual, “2”= Valor [cite: 150] |
+| 032 a 043 | Filler | 012 | [cite_start]Brancos [cite: 150] |
+| 044 a 046 | Código do Banco para Crédito do 1º Beneficiário | 003 | [cite_start]Fixo “237” [cite: 150] |
+| 047 a 051 | Código da Agência para Crédito do 1º Beneficiário | 005 | [cite_start]Código da Agência [cite: 151] |
+| 052 a 052 | Dígito da Agência para Crédito do 1º Beneficiário | 001 | [cite_start]Dígito da Agência [cite: 151] |
+| 053 a 064 | Número da Conta-Corrente para Crédito do 1º Beneficiário | 012 | [cite_start]Número da Conta-Corrente do Beneficiário [cite: 151] |
+| 065 a 065 | Dígito da Conta-Corrente para Crédito do 1º Beneficiário | 001 | [cite_start]Dígito da Conta-Corrente [cite: 151] |
+| 066 a 080 | Valor, ou Percentual para Rateio | 015 | [cite_start]Valor do rateio, de acordo com o tipo (percentual ou valor) [cite: 151] |
+| 081 a 120 | Nome do 1º Beneficiário | 040 | [cite_start]Nome do 1º Beneficiário [cite: 151, 152] |
+| 121 a 151 | Filler | 031 | [cite_start]Brancos [cite: 152] |
+| 152 a 157 | Parcela | 006 | [cite_start]Identificação da Parcela [cite: 152] |
+| 158 a 160 | Floating para o 1º Beneficiário | 003 | Quant. Dias Créd. [cite_start]Benef [cite: 152, 153] |
+| ... | ... | ... | (Campos se repetem para 2º e 3º beneficiários) [cite_start][cite: 153, 154, 155, 156] |
+| 395 a 400 | Número Sequencial do Registro | 006 | [cite_start]Número Sequencial do Registro [cite: 157] |
+
+#### **Registro de Transação (Tipo 6 - Múltiplas Transferências / Cadastro e Autorização para Débito Automático)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]Fixo “6” [cite: 158] |
+| 002 a 004 | Carteira | 003 | [cite_start]Nº da Carteira [cite: 158] |
+| 005 a 009 | Agência | 005 | [cite_start]Código da Agência do Beneficiário [cite: 158] |
+| 010 a 016 | Conta-Corrente | 007 | [cite_start]Número da Conta-Corrente [cite: 158] |
+| 017 a 027 | Nosso Número | 011 | [cite_start]Nosso Número [cite: 158] |
+| 028 a 028 | Dígito do Nosso Número | 001 | [cite_start]Dígito do Nosso Número [cite: 158] |
+| 029 a 029 | Tipo de Operação | 001 | [cite_start]1-Operação de Crédito, 2-Arrendamento Mercantil, 3-Outros [cite: 158] |
+| 030 a 030 | Utilização do Cheque Especial | 001 | [cite_start]S ou N [cite: 158] |
+| 031 a 031 | Consulta Saldo Após o Vencimento | 001 | [cite_start]S ou N [cite: 158] |
+| 032 a 056 | Número Cód.Identificação/Contrato | 025 | [cite_start]Número Operação Contratada [cite: 158] |
+| 057 a 064 | Prazo de Validade do Contrato /Autorização | 008 | [cite_start]DD/MM/AAAA ou Indeterminado (99999999) [cite: 158, 159] |
+| 065 a 394 | Brancos | 330 | [cite_start]Brancos [cite: 159] |
+| 395 a 400 | Número Sequencial do Registro | 005 | [cite_start]Sequência do Registro [cite: 159] |
+
+#### **Registro de Transação (Tipo 7 - Beneficiário Final Opcional)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Tipo Registro | 001 | [cite_start]7 [cite: 176] |
+| 002 a 046 | Endereço Beneficiário Final | 045 | [cite_start]Endereço Beneficiário Final [cite: 176] |
+| 047 a 051 | CEP | 005 | [cite_start]CEP [cite: 176] |
+| 052 a 054 | Sufixo CEP | 003 | [cite_start]Sufixo CEP [cite: 176] |
+| 055 a 074 | Cidade | 020 | [cite_start]Cidade [cite: 176] |
+| 075 a 076 | UF | 002 | [cite_start]UF [cite: 176] |
+| 077 a 366 | Reserva | 290 | [cite_start]Filler [cite: 176] |
+| 367 a 369 | Carteira | 003 | [cite_start]Nº da Carteira [cite: 176] |
+| 370 a 374 | Agência | 005 | [cite_start]Código da Agência Beneficiário [cite: 176, 177] |
+| 375 a 381 | Conta-Corrente | 007 | [cite_start]Nº da Conta-Corrente [cite: 177] |
+| 382 a 382 | Dígito C/C | 001 | [cite_start]DAC C/C [cite: 177] |
+| 383 a 393 | Nosso Número | 011 | [cite_start]Número Bancário [cite: 177, 178] |
+| 394 a 394 | DAC Nosso Número | 001 | [cite_start]Dígito N/N [cite: 178, 179] |
+| 395 a 400 | Nº Sequencial de Registro | 006 | [cite_start]Nº Sequencial de Registro [cite: 179] |
+
+#### **Registro Trailer (Tipo 9)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação Registro | 001 | [cite_start]9 [cite: 179] |
+| 002 a 394 | Branco | 393 | [cite_start]Branco [cite: 179] |
+| 395 a 400 | Número Sequencial de Registro | 006 | [cite_start]Nº Sequencial do Último Registro [cite: 179] |
+
+---
+
+### **Arquivo-Retorno (Recebimento do Banco)**
+
+#### **Registro Header (Tipo 0)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]0 [cite: 394] |
+| 002 a 002 | Identificação do Arquivo-Retorno | 001 | [cite_start]2 [cite: 394] |
+| 003 a 009 | Literal Retorno | 007 | [cite_start]Retorno [cite: 394] |
+| 010 a 011 | Código do Serviço | 002 | [cite_start]01 [cite: 394] |
+| 012 a 026 | Literal Serviço | 015 | [cite_start]Cobrança [cite: 394] |
+| 027 a 046 | Código da Empresa | 020 | [cite_start]Nº Empresa [cite: 394] |
+| 047 a 076 | Nome da Empresa por Extenso | 030 | [cite_start]Razão Social [cite: 394] |
+| 077 a 079 | Nº do Bradesco na Câmara Compensação | 003 | [cite_start]237 [cite: 394] |
+| 080 a 094 | Nome do Banco por Extenso | 015 | [cite_start]Bradesco [cite: 394] |
+| 095 a 100 | Data da Gravação do Arquivo | 006 | [cite_start]DDMMAA [cite: 394] |
+| 101 a 108 | Densidade de Gravação | 008 | [cite_start]01600000 [cite: 394] |
+| 109 a 113 | Nº Aviso Bancário | 005 | [cite_start]Nº Aviso [cite: 394, 395] |
+| 114 a 379 | Branco | 266 | [cite_start]Branco [cite: 395] |
+| 380 a 385 | Data do Crédito | 006 | [cite_start]DDMMAA [cite: 395] |
+| 386 a 394 | Branco | 009 | [cite_start]Branco [cite: 395] |
+| 395 a 400 | Nº Sequencial de Registro | 006 | [cite_start]000001 [cite: 395] |
+
+#### **Registro de Transação (Tipo 1)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]1 [cite: 396] |
+| 002 a 003 | Tipo de Inscrição Empresa | 002 | [cite_start]01-CPF, 02-CNPJ [cite: 396] |
+| 004 a 017 | Nº Inscrição da Empresa | 014 | [cite_start]CNPJ/CPF [cite: 396] |
+| 018 a 020 | Zeros | 003 | [cite_start]Zeros [cite: 396] |
+| 021 a 037 | Identificação da Empresa Beneficiário no Banco | 017 | [cite_start]Zero, Carteira, Agência, Conta-Corrente [cite: 396, 397] |
+| 038 a 062 | Nº Controle do Participante | 025 | [cite_start]Uso da Empresa [cite: 397] |
+| 063 a 070 | Zeros | 008 | [cite_start]Zeros [cite: 397] |
+| 071 a 082 | Identificação do Título no Banco | 012 | [cite_start]Nº Banco [cite: 397] |
+| 083 a 092 | Uso do Banco | 010 | [cite_start]Zeros [cite: 397] |
+| 093 a 104 | Uso do Banco | 012 | [cite_start]Zeros [cite: 397] |
+| 105 a 105 | Indicador de Rateio Crédito | 001 | [cite_start]“R” [cite: 397] |
+| 106 a 107 | Pagamento Parcial | 002 | Vide Obs. [cite_start]Pág.45 do doc [cite: 397, 398] |
+| 108 a 108 | Carteira | 001 | [cite_start]Carteira [cite: 398] |
+| 109 a 110 | Identificação de Ocorrência | 002 | (Vide tabela de ocorrências no doc) [cite_start][cite: 398] |
+| 111 a 116 | Data Ocorrência no Banco | 006 | [cite_start]DDMMAA [cite: 398] |
+| 117 a 126 | Número do Documento | 010 | [cite_start]Nº do Documento [cite: 398] |
+| 127 a 146 | Identificação do Título no Banco | 020 | [cite_start]Nº Banco [cite: 398] |
+| 147 a 152 | Data Vencimento do Título | 006 | [cite_start]DDMMAA [cite: 398] |
+| 153 a 165 | Valor do Título | 013 | [cite_start]Valor Título [cite: 398] |
+| 166 a 168 | Banco Cobrador | 003 | [cite_start]Código do Banco Câmara de Compensação [cite: 398] |
+| 169 a 173 | Agência Cobradora | 005 | [cite_start]Código da Agência do Banco Cobrador [cite: 398, 399] |
+| 174 a 175 | Espécie do Título | 002 | [cite_start]Branco [cite: 399] |
+| 176 a 188 | Despesas de cobrança | 013 | [cite_start]Valor Despesa [cite: 399] |
+| 189 a 201 | Outras Despesas/Custas de Protesto | 013 | [cite_start]Valor Outras Despesas [cite: 400] |
+| 202 a 214 | Juros Operação em Atraso | 013 | [cite_start]Será informado Com Zeros [cite: 400] |
+| 215 a 227 | IOF Devido | 013 | [cite_start]Valor do IOF [cite: 400] |
+| 228 a 240 | Abatimento Concedido sobre o Título | 013 | [cite_start]Valor Abatimento Concedido [cite: 400] |
+| 241 a 253 | Desconto Concedido | 013 | [cite_start]Valor Desconto Concedido [cite: 400] |
+| 254 a 266 | Valor Pago | 013 | [cite_start]Valor Pago [cite: 400] |
+| 267 a 279 | Juros de Mora | 013 | [cite_start]Juros de Mora [cite: 400] |
+| 280 a 292 | Outros Créditos | 013 | [cite_start]Será informado com Zeros [cite: 400] |
+| 293 a 294 | Brancos | 002 | [cite_start]Brancos [cite: 400, 401] |
+| 295 a 295 | Motivo do Código de Ocorrência 25 e 19 | 001 | [cite_start]A - Aceito, D - Desprezado [cite: 401] |
+| 296 a 301 | Data do Crédito | 006 | [cite_start]DDMMAA [cite: 401] |
+| 302 a 304 | Origem Pagamento | 03 | [cite_start]Vide tabela de origem no doc [cite: 401] |
+| 305 a 314 | Brancos | 010 | [cite_start]Brancos [cite: 401] |
+| 315 a 318 | Quando Cheque Bradesco informe 0237 | 004 | [cite_start]Código do Banco [cite: 401] |
+| 319 a 328 | Motivos das Rejeições | 010 | [cite_start]Motivo [cite: 401, 402] |
+| 329 a 368 | Brancos | 040 | [cite_start]Brancos [cite: 402] |
+| 369 a 370 | Número do Cartório | 002 | [cite_start]Número do Cartório [cite: 402] |
+| 371 a 380 | Número do Protocolo | 010 | [cite_start]Número do Protocolo [cite: 402] |
+| 381 a 394 | Brancos | 014 | [cite_start]Brancos [cite: 402] |
+| 395 a 400 | Nº Sequencial de Registro | 006 | [cite_start]Nº Sequencial Registro [cite: 402] |
+
+#### **Registro de Transação (Tipo 3 - Rateio de Crédito)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]Fixo “3” [cite: 403] |
+| 002 a 017 | Identificação da Empresa no Banco | 016 | [cite_start]Carteira, Agência, Conta-Corrente. [cite: 403, 404] |
+| 018 a 029 | Identificação Título no Banco | 012 | [cite_start]Número Bancário [cite: 404] |
+| 030 a 030 | Código de Cálculo do Rateio | 001 | [cite_start]“1”= Valor Cobrado, “2”= Valor do Registro, “3”= Rateio pelo Menor Valor [cite: 405] |
+| 031 a 031 | Tipo de Valor Informado | 001 | [cite_start]“1”= Percentual, “2”= Valor [cite: 405] |
+| 032 a 043 | Filler | 012 | [cite_start]Brancos [cite: 405] |
+| 044 a 046 | Código do Banco para Crédito do 1º Beneficiário | 003 | [cite_start]Fixo “237” [cite: 405] |
+| ... | ... | ... | (Campos se repetem para os beneficiários) [cite_start][cite: 405, 406, 408] |
+| 066 a 080 | Valor efetivo do Rateio quando do pagamento | 015 | [cite_start]Valor em Reais [cite: 406] |
+| ... | ... | ... | (Campos se repetem para os beneficiários) [cite_start][cite: 406, 408, 411] |
+| 151 a 158 | Data do Crédito para o 1º Beneficiário | 008 | [cite_start]Data do Crédito DDMMAAAA [cite: 407] |
+| 159 a 160 | Status / Motivo da Ocorrência de Rateio | 002 | (Vide tabela de motivos no doc) [cite_start][cite: 407] |
+| ... | ... | ... | (Campos se repetem para os beneficiários) [cite_start][cite: 407, 409, 412] |
+| 395 a 400 | Número Sequencial do Registro | 006 | [cite_start]Número Sequencial do Registro [cite: 412] |
+
+#### **Registro de Transação (Tipo 4 - QR CODE)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]4 [cite: 413] |
+| 002 a 004 | Carteira | 003 | [cite_start]Carteira [cite: 413] |
+| 005 a 009 | Agência | 005 | [cite_start]Código da Agência do Beneficiário [cite: 413] |
+| 010 a 016 | Conta-Corrente | 007 | [cite_start]Número da Conta-Corrente, sem Dígito [cite: 413] |
+| 017 a 027 | Nosso Número | 011 | [cite_start]Nosso Número [cite: 413] |
+| 028 a 028 | Dígito do Nosso Número | 001 | [cite_start]Dígito do Nosso Número [cite: 413] |
+| 029 a 105 | ChavePIX/URL | 077 | [cite_start]Chave Pix / URL do QR Code [cite: 413] |
+| 106 a 140 | TXID | 035 | [cite_start]Código de Identificação do QR Code [cite: 413] |
+| 141 a 394 | Brancos | 254 | [cite_start]Brancos [cite: 413, 414] |
+| 395 a 400 | Nº Sequencial de Registro | 006 | [cite_start]Nº Sequencial de Registro [cite: 414] |
+
+#### **Registro Trailer (Tipo 9)**
+
+| Posição De/Até | Nome do Campo | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| 001 a 001 | Identificação do Registro | 001 | [cite_start]9 [cite: 415] |
+| 002 a 002 | Identificação do Retorno | 001 | [cite_start]2 [cite: 415] |
+| 003 a 004 | Identificação Tipo de Registro | 002 | [cite_start]01 [cite: 415] |
+| 005 a 007 | Código do Banco | 003 | [cite_start]237 [cite: 415] |
+| 008 a 017 | Brancos | 010 | [cite_start]Brancos [cite: 415] |
+| 018 a 025 | Quantidade de Títulos em Cobrança | 008 | [cite_start]Quantidade de Títulos em Cobrança [cite: 415] |
+| 026 a 039 | Valor Total em Cobrança | 014 | [cite_start]Valor Total em Cobrança [cite: 415, 416] |
+| 040 a 047 | Nº do Aviso Bancário | 008 | [cite_start]Nº do Aviso Bancário [cite: 416] |
+| 048 a 057 | Brancos | 010 | [cite_start]Brancos [cite: 416] |
+| 058 a 188 | Totalizadores por Ocorrência | - | [cite_start]Quantidades e Valores para ocorrências 02, 06, 09, 10, 13, 14, 12, 19 [cite: 416, 417, 418] |
+| 189 a 362 | Brancos | 174 | [cite_start]Brancos [cite: 419] |
+| 363 a 377 | Valor Total dos Rateios Efetuados | 015 | [cite_start]Valor Total Rateios [cite: 419] |
+| 378 a 385 | Quantidade Total dos Rateios Efetuados | 08 | [cite_start]Quantidade Rateios Efetuados [cite: 419] |
+| 386 a 394 | Brancos | 09 | [cite_start]Brancos [cite: 419] |
+| 395 a 400 | Número Sequencial do Registro | 006 | [cite_start]Nº Sequencial do Registro [cite: 419] |
+
+---
+
+### **Informações Complementares**
+
+#### **Notas sobre o Arquivo-Remessa**
+
+* [cite_start]Os campos numéricos deverão ser alinhados à direita e preenchidos com “zeros” à esquerda, quando for o caso[cite: 180].
+* [cite_start]Os campos correspondentes a valores (moeda real) deverão ser preenchidos com duas casas decimais[cite: 181].
+* [cite_start]Quando se tratar de moeda indexada (dólar, TR etc.), deverão ser preenchidos com cinco casas decimais[cite: 182].
+* [cite_start]O número sequencial de remessa (posições 111 a 117 do Header) deve iniciar em 0000001 e ser incrementado em +1 a cada novo arquivo para evitar duplicidade[cite: 187].
+
+#### **Cálculo do Dígito de Autoconferência do Nosso Número**
+
+Para calcular o dígito (posição 82 do Registro Tipo 1), deve-se:
+1.  [cite_start]Adicionar o número da carteira à esquerda do Nosso Número (11 posições)[cite: 212].
+2.  [cite_start]Aplicar o cálculo do módulo 11, com base 7[cite: 212].
+3.  [cite_start]Multiplicar cada algarismo da direita para a esquerda pela sequência de pesos 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7[cite: 213].
+4.  [cite_start]Somar os resultados das multiplicações[cite: 214].
+5.  [cite_start]Dividir o somatório por 11[cite: 214].
+6.  [cite_start]O dígito será o resultado de 11 menos o resto da divisão[cite: 214, 215].
+    * [cite_start]**Exceções:** Se o resto da divisão for "0", o dígito é "0"[cite: 220]. [cite_start]Se o resto da divisão for "1", o dígito será "P" (pois 11-1 = 10)[cite: 216].
+
+#### **Código de Barras e Linha Digitável**
+
+[cite_start]A documentação fornece instruções detalhadas para a montagem do código de barras (padrão I25 - 2 de 5 Intercalado) [cite: 295] [cite_start]e da linha digitável[cite: 333].
+
+* [cite_start]**Código de Barras:** Contém 44 posições, incluindo Identificação do Banco, Código da Moeda, Dígito Verificador, Fator de Vencimento, Valor e um Campo Livre de 25 posições[cite: 317]. [cite_start]O cálculo do dígito verificador é feito pelo Módulo 11[cite: 320].
+* [cite_start]**Linha Digitável:** Composta por 5 campos, com dígitos verificadores para os 3 primeiros campos calculados pelo Módulo 10[cite: 333, 341].
+
+#### **Fator de Vencimento**
+
+* [cite_start]O Fator de Vencimento é um número de 4 dígitos inserido no código de barras para identificar a Data de Vencimento do título[cite: 388].
+* [cite_start]É obtido pela subtração da data de vencimento do título da data-base 07/10/1997[cite: 388].
+* [cite_start]A partir de 22/02/2025, o fator de vencimento retornará para “1000”, e a contagem será retomada a partir dessa nova base[cite: 391].
+
+#### **Notas sobre o Arquivo-Retorno**
+
+* [cite_start]Os campos numéricos estarão alinhados à direita e preenchidos com “zeros” à esquerda[cite: 420].
+* [cite_start]O arquivo-retorno trará a confirmação do processamento dos títulos enviados na remessa, com códigos de ocorrência que indicam o status de cada um (ex: 02..Entrada Confirmada, 03..Entrada Rejeitada, 06..Liquidação Normal)[cite: 427].
+* [cite_start]Para cada ocorrência, pode haver um ou mais códigos de motivo (posições 319 a 328) detalhando a situação[cite: 453].

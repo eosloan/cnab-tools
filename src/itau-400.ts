@@ -77,9 +77,9 @@ export type ItauCnab400RemessaDetail1 = {
 
 export type ItauCnab400RemessaDetail2 = {
   recordType: "2";
-  fineCode: string; // 1
-  fineDate: string; // 8 (DDMMAAAA)
-  fineAmount: string; // 13 (11+2)
+  penaltyCode: string; // 1
+  penaltyDate: string; // 8 (DDMMAAAA)
+  penaltyAmount: string; // 13 (11+2)
   blanks1: string; // 371
   sequentialNumber: string; // 6
 };
@@ -398,9 +398,9 @@ export function parseRemessaDetail1(line: string): ItauCnab400RemessaDetail1 {
 export function parseRemessaDetail2(line: string): ItauCnab400RemessaDetail2 {
   return {
     recordType: "2",
-    fineCode: line[1],
-    fineDate: line.substring(2, 10),
-    fineAmount: line.substring(10, 23),
+    penaltyCode: line[1],
+    penaltyDate: line.substring(2, 10),
+    penaltyAmount: line.substring(10, 23),
     blanks1: line.substring(23, 394),
     sequentialNumber: line.substring(394, 400),
   };
@@ -585,9 +585,9 @@ export function generate(entries: ItauCnab400Record[]): string {
       const e = entry;
       fileContent +=
         "2" +
-        alpha(e.fineCode, 1) +
-        num(e.fineDate, 8) +
-        num(e.fineAmount, 13) +
+        alpha(e.penaltyCode, 1) +
+        num(e.penaltyDate, 8) +
+        num(e.penaltyAmount, 13) +
         alpha("", 371) +
         num(e.sequentialNumber, 6);
     } else if (entry.recordType === "4") {

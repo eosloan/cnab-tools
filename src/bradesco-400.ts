@@ -7,173 +7,344 @@ import {
 } from "./utils/errors";
 import { Cnab } from "./utils/types";
 
+// ==================== REMESSA TYPES ====================
+
 export type BradescoCnab400RemessaHeader = {
   recordType: "0";
-  operation: string;
+  fileId: "1"; // Identificação do Arquivo-Remessa
   remessaLiteral: "REMESSA";
-  serviceCode: string;
+  serviceCode: "01";
   serviceLiteral: "COBRANCA";
-  agency: string; // Agência Mantenedora da Conta (4 posições)
-  zeros1: "00";
-  account: string; // Número da Conta Corrente (5 posições)
-  dac: string; // DV da Conta Corrente (1 posição)
-  blanks1: string; // Brancos (8 posições)
-  companyName: string; // Nome da Empresa (30 posições)
-  bankCode: string;
-  bankName: "BANCO BRADESCO SA";
-  generationDate: string; // Data de Geração do Arquivo (6 posições - DDMMAA)
-  blanks2: string; // Brancos (294 posições)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  companyCode: string; // 20 - Código da Empresa fornecido pelo Bradesco
+  companyName: string; // 30
+  bankCode: "237"; // Número do Bradesco na Câmara de Compensação
+  bankName: "BRADESCO"; // 15
+  generationDate: string; // 6 (DDMMAA)
+  blanks1: string; // 8
+  systemId: "MX"; // 2
+  remessaSequential: string; // 7
+  blanks2: string; // 277
+  sequentialNumber: string; // 6
 };
 
 export type BradescoCnab400RemessaDetail1 = {
   recordType: "1";
-  beneficiaryTaxIdType: string; // Tipo de Inscrição do Beneficiário (2 posições)
-  beneficiaryTaxId: string; // CNPJ/CPF do Beneficiário (14 posições)
-  agency: string; // Agência Mantenedora da Conta (4 posições)
-  zeros1: "00";
-  account: string; // Número da Conta Corrente (5 posições)
-  dac: string; // DV da Conta Corrente (1 posição)
-  blanks1: string; // Brancos (4 posições)
-  instruction: string; // Identificação da Instrução (4 posições)
-  yourNumber: string; // Seu Número (25 posições)
-  ourNumber: string; // Nosso Número (8 posições)
-  currencyQuantity: string; // Quantidade de Moeda (13 posições - 8 inteiros + 5 decimais)
-  walletNumber: string; // Número da Carteira (3 posições)
-  bankUse: string; // Uso do Banco (21 posições)
-  walletCode: string; // Código da Carteira (1 posição)
-  occurrenceCode: string; // Código de Ocorrência (2 posições)
-  documentNumber: string; // Número do Documento (10 posições)
-  dueDate: string; // Data de Vencimento (6 posições - DDMMAA)
-  amount: string; // Valor do Título (13 posições - 11 inteiros + 2 decimais)
-  bankCode: string; // Código do Banco Cobrador (3 posições)
-  chargingAgency: string; // Agência Cobradora (5 posições)
-  species: string; // Espécie do Título (2 posições)
-  acceptance: string; // Identificação de Título Aceito/Não Aceito (1 posição)
-  issueDate: string; // Data de Emissão (6 posições - DDMMAA)
-  instruction1: string; // 1ª Instrução (2 posições)
-  instruction2: string; // 2ª Instrução (2 posições)
-  dailyInterest: string; // Valor de Mora por Dia (13 posições - 11 inteiros + 2 decimais)
-  discountDate: string; // Data Limite para Desconto (6 posições - DDMMAA)
-  discountAmount: string; // Valor do Desconto (13 posições - 11 inteiros + 2 decimais)
-  iofAmount: string; // Valor do IOF (13 posições - 11 inteiros + 2 decimais)
-  rebateAmount: string; // Valor do Abatimento (13 posições - 11 inteiros + 2 decimais)
-  payerTaxIdType: string; // Tipo de Inscrição do Pagador (2 posições)
-  payerTaxId: string; // CNPJ/CPF do Pagador (14 posições)
-  payerName: string; // Nome do Pagador (30 posições)
-  blanks2: string; // Brancos (10 posições)
-  payerAddress: string; // Endereço do Pagador (40 posições)
-  payerNeighborhood: string; // Bairro do Pagador (12 posições)
-  payerZipCode: string; // CEP do Pagador (8 posições)
-  payerCity: string; // Cidade do Pagador (15 posições)
-  payerState: string; // UF do Pagador (2 posições)
-  drawerGuarantor: string; // Nome do Sacador/Avalista (30 posições)
-  blanks3: string; // Brancos (4 posições)
-  interestStartDate: string; // Data de Mora (6 posições - DDMMAA)
-  protestDays: string; // Prazo para Protesto (2 posições)
-  blanks4: string; // Branco (1 posição)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  debitAgency: string; // 5 - Opcional
+  debitAgencyDigit: string; // 1 - Opcional
+  accountReason: string; // 5 - Opcional
+  debitAccount: string; // 7 - Opcional
+  debitAccountDigit: string; // 1 - Opcional
+  companyIdentification: string; // 17 - Zero, Carteira, Agência e Conta-Corrente
+  yourNumber: string; // 25 - Nº Controle do Participante
+  bankCode: "237"; // 3
+  penaltyField: string; // 1 - 0=sem multa, 2=percentual
+  penaltyPercentage: string; // 4
+  ourNumber: string; // 11 - Identificação do Título no Banco
+  ourNumberDac: string; // 1 - Dígito de Autoconferência
+  dailyBonusDiscount: string; // 10
+  bankslipEmissionCondition: string; // 1 - 1=Banco emite, 2=Cliente emite
+  debitAutoBankslip: string; // 1 - N=Não registra
+  bankOperationId: string; // 10 - Brancos
+  creditSplitIndicator: string; // 1 - "R" ou branco
+  debitAutoNoticeAddress: string; // 1
+  paymentsQuantity: string; // 2
+  occurrenceCode: string; // 2
+  documentNumber: string; // 10
+  dueDate: string; // 6 (DDMMAA)
+  amount: string; // 13
+  chargingBank: string; // 3 - Zeros
+  depositoryAgency: string; // 5 - Zeros
+  species: string; // 2
+  identification: "N"; // 1 - Sempre N
+  issueDate: string; // 6 (DDMMAA)
+  instruction1: string; // 2
+  instruction2: string; // 2
+  dailyLateFee: string; // 13
+  discountDate: string; // 6 (DDMMAA)
+  discountAmount: string; // 13
+  iofAmount: string; // 13
+  rebateAmount: string; // 13
+  payerTaxIdType: string; // 2 - 01=CPF, 02=CNPJ
+  payerTaxId: string; // 14
+  payerName: string; // 40
+  payerAddress: string; // 40
+  firstMessage: string; // 12
+  payerZipCode: string; // 5
+  payerZipSuffix: string; // 3
+  finalBeneficiaryOrSecondMessage: string; // 60
+  sequentialNumber: string; // 6
 };
 
 export type BradescoCnab400RemessaDetail2 = {
   recordType: "2";
-  fineCode: string; // Código da Multa (1 posição)
-  fineDate: string; // Data da Multa (8 posições - DDMMAAAA)
-  fineAmount: string; // Valor da Multa (13 posições - 11 inteiros + 2 decimais)
-  blanks1: string; // Brancos (371 posições)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  message1: string; // 80
+  message2: string; // 80
+  message3: string; // 80
+  message4: string; // 80
+  discountDate2: string; // 6 (DDMMAA)
+  discountAmount2: string; // 13
+  discountDate3: string; // 6 (DDMMAA)
+  discountAmount3: string; // 13
+  filler1: string; // 7
+  wallet: string; // 3
+  agency: string; // 5
+  account: string; // 7
+  accountDac: string; // 1
+  ourNumber: string; // 11
+  ourNumberDac: string; // 1
+  sequentialNumber: string; // 6
 };
 
-export type BradescoCnab400RemessaDetail4 = {
-  recordType: "4";
-  valueType: string; // Tipo de Valor (1 posição)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+export type BradescoCnab400RemessaDetail3 = {
+  recordType: "3";
+  companyIdentification: string; // 16 - Carteira, Agência, Conta Corrente
+  ourNumber: string; // 12
+  calculationCode: string; // 1 - 1=Valor Cobrado, 2=Valor do Registro, 3=Menor Valor
+  valueType: string; // 1 - 1=Percentual, 2=Valor
+  filler1: string; // 12
+  beneficiary1BankCode: string; // 3 - Fixo "237"
+  beneficiary1Agency: string; // 5
+  beneficiary1AgencyDac: string; // 1
+  beneficiary1Account: string; // 12
+  beneficiary1AccountDac: string; // 1
+  beneficiary1Value: string; // 15
+  beneficiary1Name: string; // 40
+  filler2: string; // 31
+  installment: string; // 6
+  beneficiary1Floating: string; // 3
+  beneficiary2BankCode: string; // 3
+  beneficiary2Agency: string; // 5
+  beneficiary2AgencyDac: string; // 1
+  beneficiary2Account: string; // 12
+  beneficiary2AccountDac: string; // 1
+  beneficiary2Value: string; // 15
+  beneficiary2Name: string; // 40
+  filler3: string; // 31
+  beneficiary2Floating: string; // 3
+  beneficiary3BankCode: string; // 3
+  beneficiary3Agency: string; // 5
+  beneficiary3AgencyDac: string; // 1
+  beneficiary3Account: string; // 12
+  beneficiary3AccountDac: string; // 1
+  beneficiary3Value: string; // 15
+  beneficiary3Name: string; // 40
+  filler4: string; // 31
+  beneficiary3Floating: string; // 3
+  sequentialNumber: string; // 6
 };
 
-export type BradescoCnab400RemessaDetail5 = {
-  recordType: "5";
-  payerEmail: string; // E-mail do Pagador para Envio do Boleto (120 posições)
-  drawerTaxIdType: string; // Tipo de Inscrição do Sacador/Avalista (2 posições)
-  drawerTaxId: string; // CNPJ/CPF do Sacador/Avalista (14 posições)
-  drawerAddress: string; // Endereço do Sacador/Avalista (40 posições)
-  blanks1: string; // Brancos (180 posições)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+export type BradescoCnab400RemessaDetail6 = {
+  recordType: "6";
+  wallet: string; // 3
+  agency: string; // 5
+  account: string; // 7
+  ourNumber: string; // 11
+  ourNumberDac: string; // 1
+  operationType: string; // 1 - 1=Crédito, 2=Arrendamento, 3=Outros
+  useSpecialCheck: string; // 1 - S ou N
+  checkBalanceAfterDue: string; // 1 - S ou N
+  contractNumber: string; // 25
+  contractValidity: string; // 8 - DD/MM/AAAA ou 99999999
+  blanks1: string; // 330
+  sequentialNumber: string; // 6
+};
+
+export type BradescoCnab400RemessaDetail7 = {
+  recordType: "7";
+  finalBeneficiaryAddress: string; // 45
+  zipCode: string; // 5
+  zipSuffix: string; // 3
+  city: string; // 20
+  state: string; // 2
+  filler1: string; // 290
+  wallet: string; // 3
+  agency: string; // 5
+  account: string; // 7
+  accountDac: string; // 1
+  ourNumber: string; // 11
+  ourNumberDac: string; // 1
+  sequentialNumber: string; // 6
 };
 
 export type BradescoCnab400RemessaTrailer = {
   recordType: "9";
-  blanks1: string; // Brancos (393 posições)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  blanks1: string; // 393
+  sequentialNumber: string; // 6
 };
+
+// ==================== RETORNO TYPES ====================
 
 export type BradescoCnab400RetornoHeader = {
   recordType: "0";
-  returnCode: string; // Código de Retorno (1 posição)
-  returnLiteral: "RETORNO"; // Literal de Retorno (7 posições)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  fileId: "2"; // Identificação do Arquivo-Retorno
+  returnLiteral: "RETORNO";
+  serviceCode: "01";
+  serviceLiteral: "COBRANCA";
+  companyCode: string; // 20
+  companyName: string; // 30
+  bankCode: "237";
+  bankName: "BRADESCO";
+  generationDate: string; // 6 (DDMMAA)
+  recordingDensity: string; // 8 - "01600000"
+  bankNoticeNumber: string; // 5
+  blanks1: string; // 266
+  creditDate: string; // 6 (DDMMAA)
+  blanks2: string; // 9
+  sequentialNumber: string; // 6
 };
 
 export type BradescoCnab400RetornoDetail1 = {
-  recordType: "1"; // Identificação do Registro (1 posição)
-  payerTaxIdType: string; // Tipo de Inscrição do Pagador (2 posições)
-  payerTaxId: string; // CNPJ/CPF do Pagador (14 posições)
-  agency: string; // Agência Mantenedora da Conta (4 posições)
-  account: string; // Número da Conta Corrente (5 posições)
-  dac: string; // DV da Conta Corrente (1 posição)
-  yourNumber: string; // Seu Número (25 posições)
-  ourNumber: string; // Nosso Número (8 posições)
-  walletNumber: string; // Número da Carteira (3 posições)
-  dacOurNumber: string; // DAC do Nosso Número (1 posição)
-  occurrenceCode: string; // Código de Ocorrência (2 posições)
-  occurrenceDate: string; // Data da Ocorrência (6 posições - DDMMAA)
-  documentNumber: string; // Número do Documento (10 posições)
-  dueDate: string; // Data de Vencimento (6 posições - DDMMAA)
-  amount: string; // Valor do Título (13 posições - 11 inteiros + 2 decimais)
-  bankCode: string; // Código do Banco (3 posições)
-  chargingAgency: string; // Agência Cobradora (5 posições)
-  chargingAgencyDac: string; // DAC da Agência Cobradora (1 posição)
-  species: string; // Espécie do Título (2 posições)
-  chargingCost: string; // Valor de Cobrança/Tarifa (13 posições - 11 inteiros + 2 decimais)
-  iofAmount: string; // Valor do IOF (13 posições - 11 inteiros + 2 decimais)
-  downPaymentAmount: string; // Valor do Abatimento (13 posições - 11 inteiros + 2 decimais)
-  discountAmount: string; // Valor do Desconto (13 posições - 11 inteiros + 2 decimais)
-  principalAmount: string; // Valor Principal (13 posições - 11 inteiros + 2 decimais)
-  moraAmount: string; // Valor de Mora (13 posições - 11 inteiros + 2 decimais)
-  otherCreditAmount: string; // Outros Créditos (13 posições - 11 inteiros + 2 decimais)
-  bankslipDDA: string; // Boleto DDA (1 posição)
-  creditDate: string; // Data do Crédito (6 posições - DDMMAA)
-  cancelledInstructionCode: string; // Código da Instrução Cancelada (4 posições)
-  payerName: string; // Nome do Pagador (30 posições)
-  errorCodes: string; // Códigos de Erro (8 posições)
-  liquidationCode: string; // Código de Liquidação (2 posições)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  recordType: "1";
+  beneficiaryTaxIdType: string; // 2 - 01=CPF, 02=CNPJ
+  beneficiaryTaxId: string; // 14
+  zeros1: string; // 3
+  companyIdentification: string; // 17
+  yourNumber: string; // 25
+  zeros2: string; // 8
+  ourNumber: string; // 12
+  bankUse1: string; // 10
+  bankUse2: string; // 12
+  creditSplitIndicator: string; // 1 - "R"
+  partialPayment: string; // 2
+  wallet: string; // 1
+  occurrenceCode: string; // 2
+  occurrenceDate: string; // 6 (DDMMAA)
+  documentNumber: string; // 10
+  ourNumberWithDac: string; // 20
+  dueDate: string; // 6 (DDMMAA)
+  amount: string; // 13
+  collectorBank: string; // 3
+  collectorAgency: string; // 5
+  species: string; // 2
+  chargingCost: string; // 13
+  otherCosts: string; // 13
+  lateOperationInterest: string; // 13
+  iofAmount: string; // 13
+  rebateAmount: string; // 13
+  discountAmount: string; // 13
+  paidAmount: string; // 13
+  lateInterest: string; // 13
+  otherCredits: string; // 13
+  blanks1: string; // 2
+  occurrenceReason: string; // 1 - A=Aceito, D=Desprezado
+  creditDate: string; // 6 (DDMMAA)
+  paymentOrigin: string; // 3
+  blanks2: string; // 10
+  checkBankCode: string; // 4 - 0237 se cheque Bradesco
+  rejectionReasons: string; // 10
+  blanks3: string; // 40
+  notaryNumber: string; // 2
+  protocolNumber: string; // 10
+  blanks4: string; // 14
+  sequentialNumber: string; // 6
+};
+
+export type BradescoCnab400RetornoDetail3 = {
+  recordType: "3";
+  companyIdentification: string; // 16
+  ourNumber: string; // 12
+  calculationCode: string; // 1
+  valueType: string; // 1
+  filler1: string; // 12
+  beneficiary1BankCode: string; // 3
+  beneficiary1Agency: string; // 5
+  beneficiary1AgencyDac: string; // 1
+  beneficiary1Account: string; // 12
+  beneficiary1AccountDac: string; // 1
+  beneficiary1EffectiveValue: string; // 15 - Valor efetivo
+  beneficiary1Name: string; // 40
+  filler2: string; // 31
+  installment: string; // 6
+  beneficiary1CreditDate: string; // 8 - DDMMAAAA
+  beneficiary1Status: string; // 2
+  beneficiary2BankCode: string; // 3
+  beneficiary2Agency: string; // 5
+  beneficiary2AgencyDac: string; // 1
+  beneficiary2Account: string; // 12
+  beneficiary2AccountDac: string; // 1
+  beneficiary2EffectiveValue: string; // 15
+  beneficiary2Name: string; // 40
+  filler3: string; // 31
+  beneficiary2CreditDate: string; // 8
+  beneficiary2Status: string; // 2
+  beneficiary3BankCode: string; // 3
+  beneficiary3Agency: string; // 5
+  beneficiary3AgencyDac: string; // 1
+  beneficiary3Account: string; // 12
+  beneficiary3AccountDac: string; // 1
+  beneficiary3EffectiveValue: string; // 15
+  beneficiary3Name: string; // 40
+  filler4: string; // 31
+  beneficiary3CreditDate: string; // 8
+  beneficiary3Status: string; // 2
+  sequentialNumber: string; // 6
+};
+
+export type BradescoCnab400RetornoDetail4 = {
+  recordType: "4";
+  wallet: string; // 3
+  agency: string; // 5
+  account: string; // 7
+  ourNumber: string; // 11
+  ourNumberDac: string; // 1
+  pixKeyUrl: string; // 77
+  txId: string; // 35
+  blanks1: string; // 254
+  sequentialNumber: string; // 6
 };
 
 export type BradescoCnab400RetornoTrailer = {
   recordType: "9";
-  returnCode: string; // Código de Retorno (1 posição)
-  serviceCode: string; // Código do Serviço (2 posições)
-  bankCode: string; // Código do Banco (3 posições)
-  blanks1: string; // Brancos (10 posições)
-  simpleCollectionCount: string; // Quantidade de Títulos de Cobrança Simples (8 posições)
-  simpleCollectionValue: string; // Valor Total dos Títulos de Cobrança Simples (14 posições - 12 inteiros + 2 decimais)
-  bankNotice: string; // Número do Aviso Bancário (8 posições)
-  detailCount: string; // Quantidade de Registros de Detalhe (8 posições)
-  detailTotalValue: string; // Valor Total dos Registros (14 posições - 12 inteiros + 2 decimais)
-  sequentialNumber: string; // Número Sequencial do Registro (6 posições)
+  returnId: "2"; // 1
+  recordTypeId: "01"; // 2
+  bankCode: "237"; // 3
+  blanks1: string; // 10
+  titlesInCollectionQty: string; // 8
+  titlesInCollectionValue: string; // 14
+  bankNoticeNumber: string; // 8
+  blanks2: string; // 10
+  // Totalizadores por ocorrência (58-188)
+  occurrence02Qty: string; // 8
+  occurrence02Value: string; // 14
+  occurrence02BankNotice: string; // 8
+  occurrence06Qty: string; // 8
+  occurrence06Value: string; // 14
+  occurrence06BankNotice: string; // 8
+  occurrence09Qty: string; // 8
+  occurrence09Value: string; // 14
+  occurrence10Qty: string; // 8
+  occurrence10Value: string; // 14
+  occurrence13Qty: string; // 8
+  occurrence13Value: string; // 14
+  occurrence14Qty: string; // 8
+  occurrence14Value: string; // 14
+  occurrence12Qty: string; // 8
+  occurrence12Value: string; // 14
+  occurrence19Qty: string; // 8
+  occurrence19Value: string; // 14
+  blanks3: string; // 174
+  totalSplitsValue: string; // 15
+  totalSplitsQty: string; // 8
+  blanks4: string; // 9
+  sequentialNumber: string; // 6
 };
+
+// ==================== UNION TYPES ====================
 
 export type BradescoCnab400RemessaRecord =
   | BradescoCnab400RemessaHeader
   | BradescoCnab400RemessaDetail1
   | BradescoCnab400RemessaDetail2
-  | BradescoCnab400RemessaDetail4
-  | BradescoCnab400RemessaDetail5
+  | BradescoCnab400RemessaDetail3
+  | BradescoCnab400RemessaDetail6
+  | BradescoCnab400RemessaDetail7
   | BradescoCnab400RemessaTrailer;
 
 export type BradescoCnab400RetornoRecord =
   | BradescoCnab400RetornoHeader
   | BradescoCnab400RetornoDetail1
+  | BradescoCnab400RetornoDetail3
+  | BradescoCnab400RetornoDetail4
   | BradescoCnab400RetornoTrailer;
 
 export type BradescoCnab400Record =
@@ -181,6 +352,8 @@ export type BradescoCnab400Record =
   | BradescoCnab400RetornoRecord;
 
 const prefix = "CNAB BRADESCO 400";
+
+// ==================== PARSE REMESSA ====================
 
 export function parseRemessa(
   lines: string[],
@@ -211,11 +384,14 @@ export function parseRemessa(
       case "2":
         entries.push(parseRemessaDetail2(line));
         break;
-      case "4":
-        entries.push(parseRemessaDetail4(line));
+      case "3":
+        entries.push(parseRemessaDetail3(line));
         break;
-      case "5":
-        entries.push(parseRemessaDetail5(line));
+      case "6":
+        entries.push(parseRemessaDetail6(line));
+        break;
+      case "7":
+        entries.push(parseRemessaDetail7(line));
         break;
       case "9":
         entries.push(parseRemessaTrailer(line));
@@ -239,6 +415,8 @@ export function parseRemessa(
     entries,
   };
 }
+
+// ==================== PARSE RETORNO ====================
 
 export function parseRetorno(
   lines: string[],
@@ -266,6 +444,12 @@ export function parseRetorno(
       case "1":
         entries.push(parseRetornoDetail1(line));
         break;
+      case "3":
+        entries.push(parseRetornoDetail3(line));
+        break;
+      case "4":
+        entries.push(parseRetornoDetail4(line));
+        break;
       case "9":
         entries.push(parseRetornoTrailer(line));
         break;
@@ -289,13 +473,11 @@ export function parseRetorno(
   };
 }
 
+// ==================== MAIN PARSE ====================
+
 export function parse(input: Buffer | string) {
   const content = Buffer.isBuffer(input) ? input.toString("utf8") : input;
   const lines = content.split(/\r?\n/).filter((line) => line.length > 0);
-
-  if (lines.length === 0) {
-    throw new UnsupportedLayoutError({ prefix });
-  }
 
   const layout = lines[0].length;
 
@@ -303,33 +485,21 @@ export function parse(input: Buffer | string) {
     throw new UnsupportedLayoutError({ prefix });
   }
 
-  // Determine file type based on header record type and operation code
-  const recordType = lines[0][0];
-  if (recordType !== "0") {
-    throw new InvalidRecordTypeError({
+  if (lines[0][1] === "1") {
+    return parseRemessa(lines, layout);
+  } else if (lines[0][1] === "2") {
+    return parseRetorno(lines, layout);
+  } else {
+    throw new UnsupportedLayoutError({
       prefix,
-      lineContent: lines[0],
       lineNumber: 1,
       startCol: 0,
       endCol: 1,
     });
   }
-
-  const operationCode = lines[0][1];
-  if (operationCode === "1") {
-    return parseRemessa(lines, layout);
-  } else if (operationCode === "2") {
-    return parseRetorno(lines, layout);
-  } else {
-    throw new InvalidRecordTypeError({
-      prefix,
-      lineContent: lines[0],
-      lineNumber: 1,
-      startCol: 1,
-      endCol: 2,
-    });
-  }
 }
+
+// ==================== REMESSA PARSERS ====================
 
 /**
  * Faz o parsing do header de remessa do arquivo CNAB 400 do Bradesco.
@@ -340,20 +510,19 @@ export function parse(input: Buffer | string) {
 export function parseRemessaHeader(line: string): BradescoCnab400RemessaHeader {
   return {
     recordType: "0",
-    operation: line[1],
+    fileId: "1",
     remessaLiteral: line.substring(2, 9).trim() as "REMESSA",
     serviceCode: line.substring(9, 11) as "01",
     serviceLiteral: line.substring(11, 26).trim() as "COBRANCA",
-    agency: line.substring(26, 30),
-    zeros1: line.substring(30, 32) as "00",
-    account: line.substring(32, 37),
-    dac: line[37],
-    blanks1: line.substring(38, 46),
+    companyCode: line.substring(26, 46),
     companyName: line.substring(46, 76).trim(),
     bankCode: line.substring(76, 79) as "237",
-    bankName: line.substring(79, 94).trim() as "BANCO BRADESCO SA",
+    bankName: line.substring(79, 94).trim() as "BRADESCO",
     generationDate: line.substring(94, 100),
-    blanks2: line.substring(100, 394),
+    blanks1: line.substring(100, 108),
+    systemId: line.substring(108, 110) as "MX",
+    remessaSequential: line.substring(110, 117),
+    blanks2: line.substring(117, 394),
     sequentialNumber: line.substring(394, 400),
   };
 }
@@ -363,50 +532,49 @@ export function parseRemessaDetail1(
 ): BradescoCnab400RemessaDetail1 {
   return {
     recordType: "1",
-    beneficiaryTaxIdType: line.substring(1, 3),
-    beneficiaryTaxId: line.substring(3, 17),
-    agency: line.substring(17, 21),
-    zeros1: line.substring(21, 23) as "00",
-    account: line.substring(23, 28),
-    dac: line[28],
-    blanks1: line.substring(29, 33),
-    instruction: line.substring(33, 37),
+    debitAgency: line.substring(1, 6),
+    debitAgencyDigit: line[6],
+    accountReason: line.substring(7, 12),
+    debitAccount: line.substring(12, 19),
+    debitAccountDigit: line[19],
+    companyIdentification: line.substring(20, 37),
     yourNumber: line.substring(37, 62),
-    ourNumber: line.substring(62, 70),
-    currencyQuantity: line.substring(70, 83),
-    walletNumber: line.substring(83, 86),
-    bankUse: line.substring(86, 107),
-    walletCode: line[107],
+    bankCode: line.substring(62, 65) as "237",
+    penaltyField: line[65],
+    penaltyPercentage: line.substring(66, 70),
+    ourNumber: line.substring(70, 81),
+    ourNumberDac: line[81],
+    dailyBonusDiscount: line.substring(82, 92),
+    bankslipEmissionCondition: line[92],
+    debitAutoBankslip: line[93],
+    bankOperationId: line.substring(94, 104),
+    creditSplitIndicator: line[104],
+    debitAutoNoticeAddress: line[105],
+    paymentsQuantity: line.substring(106, 108),
     occurrenceCode: line.substring(108, 110),
     documentNumber: line.substring(110, 120),
     dueDate: line.substring(120, 126),
     amount: line.substring(126, 139),
-    bankCode: line.substring(139, 142) as "237",
-    chargingAgency: line.substring(142, 147),
+    chargingBank: line.substring(139, 142),
+    depositoryAgency: line.substring(142, 147),
     species: line.substring(147, 149),
-    acceptance: line[149],
+    identification: line[149] as "N",
     issueDate: line.substring(150, 156),
     instruction1: line.substring(156, 158),
     instruction2: line.substring(158, 160),
-    dailyInterest: line.substring(160, 173),
+    dailyLateFee: line.substring(160, 173),
     discountDate: line.substring(173, 179),
     discountAmount: line.substring(179, 192),
     iofAmount: line.substring(192, 205),
     rebateAmount: line.substring(205, 218),
     payerTaxIdType: line.substring(218, 220),
     payerTaxId: line.substring(220, 234),
-    payerName: line.substring(234, 264),
-    blanks2: line.substring(264, 274),
+    payerName: line.substring(234, 274),
     payerAddress: line.substring(274, 314),
-    payerNeighborhood: line.substring(314, 326),
-    payerZipCode: line.substring(326, 334),
-    payerCity: line.substring(334, 349),
-    payerState: line.substring(349, 351),
-    drawerGuarantor: line.substring(351, 381),
-    blanks3: line.substring(381, 385),
-    interestStartDate: line.substring(385, 391),
-    protestDays: line.substring(391, 393),
-    blanks4: line[393],
+    firstMessage: line.substring(314, 326),
+    payerZipCode: line.substring(326, 331),
+    payerZipSuffix: line.substring(331, 334),
+    finalBeneficiaryOrSecondMessage: line.substring(334, 394),
     sequentialNumber: line.substring(394, 400),
   };
 }
@@ -416,34 +584,104 @@ export function parseRemessaDetail2(
 ): BradescoCnab400RemessaDetail2 {
   return {
     recordType: "2",
-    fineCode: line[1],
-    fineDate: line.substring(2, 10),
-    fineAmount: line.substring(10, 23),
-    blanks1: line.substring(23, 394),
+    message1: line.substring(1, 81),
+    message2: line.substring(81, 161),
+    message3: line.substring(161, 241),
+    message4: line.substring(241, 321),
+    discountDate2: line.substring(321, 327),
+    discountAmount2: line.substring(327, 340),
+    discountDate3: line.substring(340, 346),
+    discountAmount3: line.substring(346, 359),
+    filler1: line.substring(359, 366),
+    wallet: line.substring(366, 369),
+    agency: line.substring(369, 374),
+    account: line.substring(374, 381),
+    accountDac: line[381],
+    ourNumber: line.substring(382, 393),
+    ourNumberDac: line[393],
     sequentialNumber: line.substring(394, 400),
   };
 }
 
-export function parseRemessaDetail4(
+export function parseRemessaDetail3(
   line: string,
-): BradescoCnab400RemessaDetail4 {
+): BradescoCnab400RemessaDetail3 {
   return {
-    recordType: "4",
-    valueType: line[393],
+    recordType: "3",
+    companyIdentification: line.substring(1, 17),
+    ourNumber: line.substring(17, 29),
+    calculationCode: line[29],
+    valueType: line[30],
+    filler1: line.substring(31, 43),
+    beneficiary1BankCode: line.substring(43, 46),
+    beneficiary1Agency: line.substring(46, 51),
+    beneficiary1AgencyDac: line[51],
+    beneficiary1Account: line.substring(52, 64),
+    beneficiary1AccountDac: line[64],
+    beneficiary1Value: line.substring(65, 80),
+    beneficiary1Name: line.substring(80, 120),
+    filler2: line.substring(120, 151),
+    installment: line.substring(151, 157),
+    beneficiary1Floating: line.substring(157, 160),
+    beneficiary2BankCode: line.substring(160, 163),
+    beneficiary2Agency: line.substring(163, 168),
+    beneficiary2AgencyDac: line[168],
+    beneficiary2Account: line.substring(169, 181),
+    beneficiary2AccountDac: line[181],
+    beneficiary2Value: line.substring(182, 197),
+    beneficiary2Name: line.substring(197, 237),
+    filler3: line.substring(237, 268),
+    beneficiary2Floating: line.substring(268, 271),
+    beneficiary3BankCode: line.substring(271, 274),
+    beneficiary3Agency: line.substring(274, 279),
+    beneficiary3AgencyDac: line[279],
+    beneficiary3Account: line.substring(280, 292),
+    beneficiary3AccountDac: line[292],
+    beneficiary3Value: line.substring(293, 308),
+    beneficiary3Name: line.substring(308, 348),
+    filler4: line.substring(348, 379),
+    beneficiary3Floating: line.substring(379, 382),
     sequentialNumber: line.substring(394, 400),
   };
 }
 
-export function parseRemessaDetail5(
+export function parseRemessaDetail6(
   line: string,
-): BradescoCnab400RemessaDetail5 {
+): BradescoCnab400RemessaDetail6 {
   return {
-    recordType: "5",
-    payerEmail: line.substring(1, 121),
-    drawerTaxIdType: line.substring(121, 123),
-    drawerTaxId: line.substring(123, 137),
-    drawerAddress: line.substring(137, 177),
-    blanks1: line.substring(215, 395),
+    recordType: "6",
+    wallet: line.substring(1, 4),
+    agency: line.substring(4, 9),
+    account: line.substring(9, 16),
+    ourNumber: line.substring(16, 27),
+    ourNumberDac: line[27],
+    operationType: line[28],
+    useSpecialCheck: line[29],
+    checkBalanceAfterDue: line[30],
+    contractNumber: line.substring(31, 56),
+    contractValidity: line.substring(56, 64),
+    blanks1: line.substring(64, 394),
+    sequentialNumber: line.substring(394, 400),
+  };
+}
+
+export function parseRemessaDetail7(
+  line: string,
+): BradescoCnab400RemessaDetail7 {
+  return {
+    recordType: "7",
+    finalBeneficiaryAddress: line.substring(1, 46),
+    zipCode: line.substring(46, 51),
+    zipSuffix: line.substring(51, 54),
+    city: line.substring(54, 74),
+    state: line.substring(74, 76),
+    filler1: line.substring(76, 366),
+    wallet: line.substring(366, 369),
+    agency: line.substring(369, 374),
+    account: line.substring(374, 381),
+    accountDac: line[381],
+    ourNumber: line.substring(382, 393),
+    ourNumberDac: line[393],
     sequentialNumber: line.substring(394, 400),
   };
 }
@@ -458,11 +696,25 @@ export function parseRemessaTrailer(
   };
 }
 
+// ==================== RETORNO PARSERS ====================
+
 export function parseRetornoHeader(line: string): BradescoCnab400RetornoHeader {
   return {
     recordType: "0",
-    returnCode: line[1],
-    returnLiteral: line.substring(2, 9) as "RETORNO",
+    fileId: "2",
+    returnLiteral: line.substring(2, 9).trim() as "RETORNO",
+    serviceCode: line.substring(9, 11) as "01",
+    serviceLiteral: line.substring(11, 26).trim() as "COBRANCA",
+    companyCode: line.substring(26, 46),
+    companyName: line.substring(46, 76).trim(),
+    bankCode: line.substring(76, 79) as "237",
+    bankName: line.substring(79, 94).trim() as "BRADESCO",
+    generationDate: line.substring(94, 100),
+    recordingDensity: line.substring(100, 108),
+    bankNoticeNumber: line.substring(108, 113),
+    blanks1: line.substring(113, 379),
+    creditDate: line.substring(379, 385),
+    blanks2: line.substring(385, 394),
     sequentialNumber: line.substring(394, 400),
   };
 }
@@ -472,37 +724,109 @@ export function parseRetornoDetail1(
 ): BradescoCnab400RetornoDetail1 {
   return {
     recordType: "1",
-    payerTaxIdType: line.substring(1, 3),
-    payerTaxId: line.substring(3, 17),
-    agency: line.substring(17, 21),
-    account: line.substring(23, 28),
-    dac: line[28],
+    beneficiaryTaxIdType: line.substring(1, 3),
+    beneficiaryTaxId: line.substring(3, 17),
+    zeros1: line.substring(17, 20),
+    companyIdentification: line.substring(20, 37),
     yourNumber: line.substring(37, 62),
-    ourNumber: line.substring(62, 70),
-    walletNumber: line.substring(82, 85),
-    dacOurNumber: line[93],
+    zeros2: line.substring(62, 70),
+    ourNumber: line.substring(70, 82),
+    bankUse1: line.substring(82, 92),
+    bankUse2: line.substring(92, 104),
+    creditSplitIndicator: line[104],
+    partialPayment: line.substring(105, 107),
+    wallet: line[107],
     occurrenceCode: line.substring(108, 110),
     occurrenceDate: line.substring(110, 116),
     documentNumber: line.substring(116, 126),
+    ourNumberWithDac: line.substring(126, 146),
     dueDate: line.substring(146, 152),
     amount: line.substring(152, 165),
-    bankCode: line.substring(165, 168) as "237",
-    chargingAgency: line.substring(168, 172),
-    chargingAgencyDac: line[172],
+    collectorBank: line.substring(165, 168),
+    collectorAgency: line.substring(168, 173),
     species: line.substring(173, 175),
     chargingCost: line.substring(175, 188),
+    otherCosts: line.substring(188, 201),
+    lateOperationInterest: line.substring(201, 214),
     iofAmount: line.substring(214, 227),
-    downPaymentAmount: line.substring(227, 240),
+    rebateAmount: line.substring(227, 240),
     discountAmount: line.substring(240, 253),
-    principalAmount: line.substring(253, 266),
-    moraAmount: line.substring(266, 279),
-    otherCreditAmount: line.substring(279, 292),
-    bankslipDDA: line.substring(292, 293),
+    paidAmount: line.substring(253, 266),
+    lateInterest: line.substring(266, 279),
+    otherCredits: line.substring(279, 292),
+    blanks1: line.substring(292, 294),
+    occurrenceReason: line[294],
     creditDate: line.substring(295, 301),
-    cancelledInstructionCode: line.substring(301, 305),
-    payerName: line.substring(324, 354),
-    errorCodes: line.substring(377, 385),
-    liquidationCode: line.substring(392, 394),
+    paymentOrigin: line.substring(301, 304),
+    blanks2: line.substring(304, 314),
+    checkBankCode: line.substring(314, 318),
+    rejectionReasons: line.substring(318, 328),
+    blanks3: line.substring(328, 368),
+    notaryNumber: line.substring(368, 370),
+    protocolNumber: line.substring(370, 380),
+    blanks4: line.substring(380, 394),
+    sequentialNumber: line.substring(394, 400),
+  };
+}
+
+export function parseRetornoDetail3(
+  line: string,
+): BradescoCnab400RetornoDetail3 {
+  return {
+    recordType: "3",
+    companyIdentification: line.substring(1, 17),
+    ourNumber: line.substring(17, 29),
+    calculationCode: line[29],
+    valueType: line[30],
+    filler1: line.substring(31, 43),
+    beneficiary1BankCode: line.substring(43, 46),
+    beneficiary1Agency: line.substring(46, 51),
+    beneficiary1AgencyDac: line[51],
+    beneficiary1Account: line.substring(52, 64),
+    beneficiary1AccountDac: line[64],
+    beneficiary1EffectiveValue: line.substring(65, 80),
+    beneficiary1Name: line.substring(80, 120),
+    filler2: line.substring(120, 151),
+    installment: line.substring(151, 157),
+    beneficiary1CreditDate: line.substring(150, 158),
+    beneficiary1Status: line.substring(158, 160),
+    beneficiary2BankCode: line.substring(160, 163),
+    beneficiary2Agency: line.substring(163, 168),
+    beneficiary2AgencyDac: line[168],
+    beneficiary2Account: line.substring(169, 181),
+    beneficiary2AccountDac: line[181],
+    beneficiary2EffectiveValue: line.substring(182, 197),
+    beneficiary2Name: line.substring(197, 237),
+    filler3: line.substring(237, 268),
+    beneficiary2CreditDate: line.substring(261, 269),
+    beneficiary2Status: line.substring(269, 271),
+    beneficiary3BankCode: line.substring(271, 274),
+    beneficiary3Agency: line.substring(274, 279),
+    beneficiary3AgencyDac: line[279],
+    beneficiary3Account: line.substring(280, 292),
+    beneficiary3AccountDac: line[292],
+    beneficiary3EffectiveValue: line.substring(293, 308),
+    beneficiary3Name: line.substring(308, 348),
+    filler4: line.substring(348, 379),
+    beneficiary3CreditDate: line.substring(372, 380),
+    beneficiary3Status: line.substring(380, 382),
+    sequentialNumber: line.substring(394, 400),
+  };
+}
+
+export function parseRetornoDetail4(
+  line: string,
+): BradescoCnab400RetornoDetail4 {
+  return {
+    recordType: "4",
+    wallet: line.substring(1, 4),
+    agency: line.substring(4, 9),
+    account: line.substring(9, 16),
+    ourNumber: line.substring(16, 27),
+    ourNumberDac: line[27],
+    pixKeyUrl: line.substring(28, 105),
+    txId: line.substring(105, 140),
+    blanks1: line.substring(140, 394),
     sequentialNumber: line.substring(394, 400),
   };
 }
@@ -512,18 +836,41 @@ export function parseRetornoTrailer(
 ): BradescoCnab400RetornoTrailer {
   return {
     recordType: "9",
-    returnCode: line[1],
-    serviceCode: line.substring(2, 4),
-    bankCode: line.substring(4, 7),
+    returnId: "2",
+    recordTypeId: line.substring(2, 4) as "01",
+    bankCode: line.substring(4, 7) as "237",
     blanks1: line.substring(7, 17),
-    simpleCollectionCount: line.substring(17, 25),
-    simpleCollectionValue: line.substring(25, 39),
-    bankNotice: line.substring(39, 47),
-    detailCount: line.substring(213, 221),
-    detailTotalValue: line.substring(221, 235),
+    titlesInCollectionQty: line.substring(17, 25),
+    titlesInCollectionValue: line.substring(25, 39),
+    bankNoticeNumber: line.substring(39, 47),
+    blanks2: line.substring(47, 57),
+    occurrence02Qty: line.substring(57, 65),
+    occurrence02Value: line.substring(65, 79),
+    occurrence02BankNotice: line.substring(79, 87),
+    occurrence06Qty: line.substring(87, 95),
+    occurrence06Value: line.substring(95, 109),
+    occurrence06BankNotice: line.substring(109, 117),
+    occurrence09Qty: line.substring(117, 125),
+    occurrence09Value: line.substring(125, 139),
+    occurrence10Qty: line.substring(139, 147),
+    occurrence10Value: line.substring(147, 161),
+    occurrence13Qty: line.substring(161, 169),
+    occurrence13Value: line.substring(169, 183),
+    occurrence14Qty: line.substring(183, 191),
+    occurrence14Value: line.substring(191, 205),
+    occurrence12Qty: line.substring(205, 213),
+    occurrence12Value: line.substring(213, 227),
+    occurrence19Qty: line.substring(227, 235),
+    occurrence19Value: line.substring(235, 249),
+    blanks3: line.substring(188, 362),
+    totalSplitsValue: line.substring(362, 377),
+    totalSplitsQty: line.substring(377, 385),
+    blanks4: line.substring(385, 394),
     sequentialNumber: line.substring(394, 400),
   };
 }
+
+// ==================== GENERATE ====================
 
 export function generate(entries: BradescoCnab400Record[]): string {
   // Helper for numeric (zero-padded, right-aligned)
@@ -540,320 +887,297 @@ export function generate(entries: BradescoCnab400Record[]): string {
   for (const entry of entries) {
     if (entry.recordType === "0") {
       // Header
-      const e = entry as BradescoCnab400RemessaHeader;
-      fileContent +=
-        "0" +
-        "1" +
-        alpha("REMESSA", 7) +
-        num("01", 2) +
-        alpha("COBRANCA", 15) +
-        num(e.agency, 4) +
-        num("00", 2) +
-        num(e.account, 5) +
-        num(e.dac, 1) +
-        alpha("", 8) +
-        alpha(e.companyName, 30) +
-        num("237", 3) +
-        alpha("BANCO BRADESCO SA", 15) +
-        num(e.generationDate, 6) +
-        alpha("", 294) +
-        num(e.sequentialNumber, 6);
+      if ("fileId" in entry && entry.fileId === "1") {
+        // Remessa Header
+        const e = entry as BradescoCnab400RemessaHeader;
+        fileContent +=
+          "0" +
+          "1" +
+          alpha("REMESSA", 7) +
+          num("01", 2) +
+          alpha("COBRANCA", 15) +
+          num(e.companyCode, 20) +
+          alpha(e.companyName, 30) +
+          num("237", 3) +
+          alpha("BRADESCO", 15) +
+          num(e.generationDate, 6) +
+          alpha("", 8) +
+          alpha("MX", 2) +
+          num(e.remessaSequential, 7) +
+          alpha("", 277) +
+          num(e.sequentialNumber, 6);
+      } else {
+        // Retorno Header
+        const e = entry as BradescoCnab400RetornoHeader;
+        fileContent +=
+          "0" +
+          "2" +
+          alpha("RETORNO", 7) +
+          num("01", 2) +
+          alpha("COBRANCA", 15) +
+          alpha(e.companyCode, 20) +
+          alpha(e.companyName, 30) +
+          num("237", 3) +
+          alpha("BRADESCO", 15) +
+          num(e.generationDate, 6) +
+          num(e.recordingDensity, 8) +
+          num(e.bankNoticeNumber, 5) +
+          alpha("", 266) +
+          num(e.creditDate, 6) +
+          alpha("", 9) +
+          num(e.sequentialNumber, 6);
+      }
     } else if (entry.recordType === "1") {
       // Detail 1
       const e = entry as BradescoCnab400RemessaDetail1;
       fileContent +=
         "1" +
-        num(e.beneficiaryTaxIdType, 2) +
-        num(e.beneficiaryTaxId, 14) +
-        num(e.agency, 4) +
-        num("00", 2) +
-        num(e.account, 5) +
-        num(e.dac, 1) +
-        alpha("", 4) +
-        num(e.instruction, 4) +
+        num(e.debitAgency, 5) +
+        num(e.debitAgencyDigit, 1) +
+        num(e.accountReason, 5) +
+        num(e.debitAccount, 7) +
+        num(e.debitAccountDigit, 1) +
+        alpha(e.companyIdentification, 17) +
         alpha(e.yourNumber, 25) +
-        num(e.ourNumber, 8) +
-        num(e.currencyQuantity, 13) +
-        num(e.walletNumber, 3) +
-        alpha(e.bankUse, 21) +
-        alpha(e.walletCode, 1) +
+        num("237", 3) +
+        alpha(e.penaltyField, 1) +
+        num(e.penaltyPercentage, 4) +
+        num(e.ourNumber, 11) +
+        num(e.ourNumberDac, 1) +
+        num(e.dailyBonusDiscount, 10) +
+        alpha(e.bankslipEmissionCondition, 1) +
+        alpha(e.debitAutoBankslip, 1) +
+        alpha("", 10) +
+        alpha(e.creditSplitIndicator, 1) +
+        num(e.debitAutoNoticeAddress, 1) +
+        alpha(e.paymentsQuantity, 2) +
         num(e.occurrenceCode, 2) +
         alpha(e.documentNumber, 10) +
         num(e.dueDate, 6) +
         num(e.amount, 13) +
-        num("237", 3) +
-        num(e.chargingAgency, 5) +
+        num("000", 3) +
+        num("00000", 5) +
         alpha(e.species, 2) +
-        alpha(e.acceptance, 1) +
+        alpha("N", 1) +
         num(e.issueDate, 6) +
-        alpha(e.instruction1, 2) +
-        alpha(e.instruction2, 2) +
-        num(e.dailyInterest, 13) +
+        num(e.instruction1, 2) +
+        num(e.instruction2, 2) +
+        num(e.dailyLateFee, 13) +
         num(e.discountDate, 6) +
         num(e.discountAmount, 13) +
         num(e.iofAmount, 13) +
         num(e.rebateAmount, 13) +
         num(e.payerTaxIdType, 2) +
         num(e.payerTaxId, 14) +
-        alpha(e.payerName, 30) +
-        alpha("", 10) +
+        alpha(e.payerName, 40) +
         alpha(e.payerAddress, 40) +
-        alpha(e.payerNeighborhood, 12) +
-        num(e.payerZipCode, 8) +
-        alpha(e.payerCity, 15) +
-        alpha(e.payerState, 2) +
-        alpha(e.drawerGuarantor, 30) +
-        alpha("", 4) +
-        num(e.interestStartDate, 6) +
-        num(e.protestDays, 2) +
-        alpha("", 1) +
+        alpha(e.firstMessage, 12) +
+        num(e.payerZipCode, 5) +
+        num(e.payerZipSuffix, 3) +
+        alpha(e.finalBeneficiaryOrSecondMessage, 60) +
         num(e.sequentialNumber, 6);
     } else if (entry.recordType === "2") {
       // Detail 2
-      const e = entry;
+      const e = entry as BradescoCnab400RemessaDetail2;
       fileContent +=
         "2" +
-        alpha(e.fineCode, 1) +
-        num(e.fineDate, 8) +
-        num(e.fineAmount, 13) +
-        alpha("", 371) +
+        alpha(e.message1, 80) +
+        alpha(e.message2, 80) +
+        alpha(e.message3, 80) +
+        alpha(e.message4, 80) +
+        num(e.discountDate2, 6) +
+        num(e.discountAmount2, 13) +
+        num(e.discountDate3, 6) +
+        num(e.discountAmount3, 13) +
+        alpha("", 7) +
+        num(e.wallet, 3) +
+        num(e.agency, 5) +
+        num(e.account, 7) +
+        alpha(e.accountDac, 1) +
+        num(e.ourNumber, 11) +
+        alpha(e.ourNumberDac, 1) +
         num(e.sequentialNumber, 6);
-    } else if (entry.recordType === "4") {
-      // Detail 4 (rateio, partial)
-      const e = entry;
+    } else if (entry.recordType === "3") {
+      // Detail 3
+      const e = entry as BradescoCnab400RemessaDetail3;
       fileContent +=
-        "4" +
-        alpha("", 392) +
+        "3" +
+        alpha(e.companyIdentification, 16) +
+        num(e.ourNumber, 12) +
+        alpha(e.calculationCode, 1) +
         alpha(e.valueType, 1) +
+        alpha("", 12) +
+        num(e.beneficiary1BankCode, 3) +
+        num(e.beneficiary1Agency, 5) +
+        alpha(e.beneficiary1AgencyDac, 1) +
+        num(e.beneficiary1Account, 12) +
+        alpha(e.beneficiary1AccountDac, 1) +
+        num(e.beneficiary1Value, 15) +
+        alpha(e.beneficiary1Name, 40) +
+        alpha("", 31) +
+        num(e.installment, 6) +
+        num(e.beneficiary1Floating, 3) +
+        num(e.beneficiary2BankCode, 3) +
+        num(e.beneficiary2Agency, 5) +
+        alpha(e.beneficiary2AgencyDac, 1) +
+        num(e.beneficiary2Account, 12) +
+        alpha(e.beneficiary2AccountDac, 1) +
+        num(e.beneficiary2Value, 15) +
+        alpha(e.beneficiary2Name, 40) +
+        alpha("", 31) +
+        num(e.beneficiary2Floating, 3) +
+        num(e.beneficiary3BankCode, 3) +
+        num(e.beneficiary3Agency, 5) +
+        alpha(e.beneficiary3AgencyDac, 1) +
+        num(e.beneficiary3Account, 12) +
+        alpha(e.beneficiary3AccountDac, 1) +
+        num(e.beneficiary3Value, 15) +
+        alpha(e.beneficiary3Name, 40) +
+        alpha("", 31) +
+        num(e.beneficiary3Floating, 3) +
         num(e.sequentialNumber, 6);
-    } else if (entry.recordType === "5") {
-      // Detail 5 (email/sacador)
-      const e = entry;
+    } else if (entry.recordType === "6") {
+      // Detail 6
+      const e = entry as BradescoCnab400RemessaDetail6;
       fileContent +=
-        "5" +
-        alpha(e.payerEmail, 120) +
-        num(e.drawerTaxIdType, 2) +
-        num(e.drawerTaxId, 14) +
-        alpha(e.drawerAddress, 40) +
-        alpha("", 180) +
+        "6" +
+        num(e.wallet, 3) +
+        num(e.agency, 5) +
+        num(e.account, 7) +
+        num(e.ourNumber, 11) +
+        alpha(e.ourNumberDac, 1) +
+        alpha(e.operationType, 1) +
+        alpha(e.useSpecialCheck, 1) +
+        alpha(e.checkBalanceAfterDue, 1) +
+        alpha(e.contractNumber, 25) +
+        num(e.contractValidity, 8) +
+        alpha("", 330) +
+        num(e.sequentialNumber, 6);
+    } else if (entry.recordType === "7") {
+      // Detail 7
+      const e = entry as BradescoCnab400RemessaDetail7;
+      fileContent +=
+        "7" +
+        alpha(e.finalBeneficiaryAddress, 45) +
+        num(e.zipCode, 5) +
+        num(e.zipSuffix, 3) +
+        alpha(e.city, 20) +
+        alpha(e.state, 2) +
+        alpha("", 290) +
+        num(e.wallet, 3) +
+        num(e.agency, 5) +
+        num(e.account, 7) +
+        alpha(e.accountDac, 1) +
+        num(e.ourNumber, 11) +
+        alpha(e.ourNumberDac, 1) +
         num(e.sequentialNumber, 6);
     } else if (entry.recordType === "9") {
       // Trailer
       const e = entry as BradescoCnab400RemessaTrailer;
       fileContent += "9" + alpha("", 393) + num(e.sequentialNumber, 6);
-    } else {
-      throw new Error("Geração não suportada para registros de retorno");
     }
     fileContent += "\n";
   }
   return fileContent;
 }
 
+// ==================== DAC CALCULATION ====================
+
 /**
- * Gera arquivo de remessa CNAB 400 Bradesco
- * @param data - Dados estruturados para geração da remessa
- * @returns Conteúdo do arquivo CNAB 400 formatado
+ * Calcula o DAC da Agência/Conta (Módulo 11)
+ * @param agencia - Código da agência (4 dígitos)
+ * @param conta - Código da conta (7 dígitos)
+ * @returns O DAC calculado
  */
-export function generateRemessa(data: {
-  header: {
-    agency: string;
-    account: string;
-    dac: string;
-    companyName: string;
-    generationDate: string; // DDMMAA
-  };
-  details: Array<{
-    beneficiaryTaxIdType: string;
-    beneficiaryTaxId: string;
-    agency: string;
-    account: string;
-    dac: string;
-    instruction?: string;
-    yourNumber: string;
-    ourNumber: string;
-    currencyQuantity?: string;
-    walletNumber: string;
-    bankUse?: string;
-    walletCode: string;
-    occurrenceCode: string;
-    documentNumber: string;
-    dueDate: string; // DDMMAA
-    amount: string;
-    chargingAgency?: string;
-    species?: string;
-    acceptance?: string;
-    issueDate?: string; // DDMMAA
-    instruction1?: string;
-    instruction2?: string;
-    dailyInterest?: string;
-    discountDate?: string; // DDMMAA or "000000"
-    discountAmount?: string;
-    iofAmount?: string;
-    rebateAmount?: string;
-    payerTaxIdType: string;
-    payerTaxId: string;
-    payerName: string;
-    payerAddress: string;
-    payerNeighborhood: string;
-    payerZipCode: string;
-    payerCity: string;
-    payerState: string;
-    drawerGuarantor?: string;
-    interestStartDate?: string; // DDMMAA or "000000"
-    protestDays?: string;
-  }>;
-  detail2Records?: Array<{
-    fineCode: string;
-    fineDate: string; // DDMMAAAA
-    fineAmount: string;
-  }>;
-  detail4Records?: Array<{
-    valueType: string;
-  }>;
-  detail5Records?: Array<{
-    payerEmail: string;
-    drawerTaxIdType: string;
-    drawerTaxId: string;
-    drawerAddress: string;
-  }>;
-}): string {
-  // Helper functions
-  const num = (val: string | number | undefined, len: number) =>
-    String(val ?? "")
-      .padStart(len, "0")
-      .slice(0, len);
-  const alpha = (val: string | undefined, len: number) =>
-    (val ?? "").padEnd(len, " ").slice(0, len);
+export function calculateDacAgenciaConta(
+  agencia: string,
+  conta: string,
+): string {
+  const baseCalculo =
+    agencia.padStart(4, "0").slice(-4) + conta.padStart(7, "0").slice(-7);
 
-  let fileContent = "";
-  let sequentialNumber = 1;
+  const pesos = [2, 3, 4, 5, 6, 7];
+  let soma = 0;
 
-  // 1. Header de Remessa (Registro Tipo 0)
-  fileContent +=
-    "0" + // Pos 1: Identificação do Registro
-    "1" + // Pos 2: Tipo de Operação (1=Remessa)
-    alpha("REMESSA", 7) + // Pos 3-9: Identificação Literal de Remessa
-    num("01", 2) + // Pos 10-11: Código do Serviço
-    alpha("COBRANCA", 15) + // Pos 12-26: Identificação Literal do Serviço
-    num(data.header.agency, 4) + // Pos 27-30: Agência Mantenedora da Conta
-    num("00", 2) + // Pos 31-32: Zeros
-    num(data.header.account, 5) + // Pos 33-37: Número da Conta Corrente
-    num(data.header.dac, 1) + // Pos 38: DV da Conta Corrente
-    alpha("", 8) + // Pos 39-46: Brancos
-    alpha(data.header.companyName, 30) + // Pos 47-76: Nome da Empresa
-    num("237", 3) + // Pos 77-79: Código do Banco (237=Bradesco)
-    alpha("BANCO BRADESCO SA", 15) + // Pos 80-94: Nome do Banco
-    num(data.header.generationDate, 6) + // Pos 95-100: Data de Geração do Arquivo
-    alpha("", 294) + // Pos 101-394: Brancos
-    num(String(sequentialNumber++), 6) + // Pos 395-400: Número Sequencial do Registro
-    "\n";
-
-  // 2. Detalhes Tipo 1 (Registro de Transação)
-  for (const detail of data.details) {
-    fileContent +=
-      "1" + // Pos 1: Identificação do Registro
-      num(detail.beneficiaryTaxIdType, 2) + // Pos 2-3: Tipo de Inscrição do Beneficiário
-      num(detail.beneficiaryTaxId, 14) + // Pos 4-17: CNPJ/CPF do Beneficiário
-      num(detail.agency, 4) + // Pos 18-21: Agência Mantenedora da Conta
-      num("00", 2) + // Pos 22-23: Zeros
-      num(detail.account, 5) + // Pos 24-28: Conta Corrente
-      num(detail.dac, 1) + // Pos 29: DV da Conta Corrente
-      alpha("", 4) + // Pos 30-33: Brancos
-      num(detail.instruction || "0000", 4) + // Pos 34-37: Identificação da Instrução
-      alpha(detail.yourNumber, 25) + // Pos 38-62: Seu Número
-      num(detail.ourNumber, 8) + // Pos 63-70: Nosso Número
-      num(detail.currencyQuantity || "0", 13) + // Pos 71-83: Quantidade de Moeda
-      num(detail.walletNumber, 3) + // Pos 84-86: Número da Carteira
-      alpha(detail.bankUse || "", 21) + // Pos 87-107: Uso do Banco
-      alpha(detail.walletCode, 1) + // Pos 108: Carteira
-      num(detail.occurrenceCode, 2) + // Pos 109-110: Código de Ocorrência
-      alpha(detail.documentNumber, 10) + // Pos 111-120: Número do Documento
-      num(detail.dueDate, 6) + // Pos 121-126: Data de Vencimento
-      num(detail.amount, 13) + // Pos 127-139: Valor do Título
-      num("237", 3) + // Pos 140-142: Código do Banco Cobrador
-      num(detail.chargingAgency || "00000", 5) + // Pos 143-147: Agência Cobradora
-      alpha(detail.species || "01", 2) + // Pos 148-149: Espécie do Título
-      alpha(detail.acceptance || "N", 1) + // Pos 150: Identificação de Título Aceito/Não Aceito
-      num(detail.issueDate || data.header.generationDate, 6) + // Pos 151-156: Data de Emissão
-      alpha(detail.instruction1 || "00", 2) + // Pos 157-158: 1ª Instrução
-      alpha(detail.instruction2 || "00", 2) + // Pos 159-160: 2ª Instrução
-      num(detail.dailyInterest || "0", 13) + // Pos 161-173: Valor de Mora por Dia
-      num(detail.discountDate || "000000", 6) + // Pos 174-179: Data Limite para Desconto
-      num(detail.discountAmount || "0", 13) + // Pos 180-192: Valor do Desconto
-      num(detail.iofAmount || "0", 13) + // Pos 193-205: Valor do IOF
-      num(detail.rebateAmount || "0", 13) + // Pos 206-218: Valor do Abatimento
-      num(detail.payerTaxIdType, 2) + // Pos 219-220: Tipo de Inscrição do Pagador
-      num(detail.payerTaxId, 14) + // Pos 221-234: CNPJ/CPF do Pagador
-      alpha(detail.payerName, 30) + // Pos 235-264: Nome do Pagador
-      alpha("", 10) + // Pos 265-274: Brancos
-      alpha(detail.payerAddress, 40) + // Pos 275-314: Endereço do Pagador
-      alpha(detail.payerNeighborhood, 12) + // Pos 315-326: Bairro do Pagador
-      num(detail.payerZipCode, 8) + // Pos 327-334: CEP do Pagador
-      alpha(detail.payerCity, 15) + // Pos 335-349: Cidade do Pagador
-      alpha(detail.payerState, 2) + // Pos 350-351: UF do Pagador
-      alpha(detail.drawerGuarantor || "", 30) + // Pos 352-381: Nome do Sacador/Avalista
-      alpha("", 4) + // Pos 382-385: Brancos
-      num(detail.interestStartDate || "000000", 6) + // Pos 386-391: Data de Mora
-      num(detail.protestDays || "00", 2) + // Pos 392-393: Prazo para Protesto
-      alpha("", 1) + // Pos 394: Branco
-      num(String(sequentialNumber++), 6) + // Pos 395-400: Número Sequencial
-      "\n";
+  for (let i = baseCalculo.length - 1; i >= 0; i--) {
+    const digito = parseInt(baseCalculo[i]);
+    const peso = pesos[(baseCalculo.length - 1 - i) % 6];
+    soma += digito * peso;
   }
 
-  // 3. Detalhes Tipo 2 (Multa)
-  if (data.detail2Records) {
-    for (const detail2 of data.detail2Records) {
-      fileContent +=
-        "2" + // Pos 1: Identificação do Registro
-        alpha(detail2.fineCode, 1) + // Pos 2: Código da Multa
-        num(detail2.fineDate, 8) + // Pos 3-10: Data da Multa
-        num(detail2.fineAmount, 13) + // Pos 11-23: Valor da Multa
-        alpha("", 371) + // Pos 24-394: Brancos
-        num(String(sequentialNumber++), 6) + // Pos 395-400: Número Sequencial
-        "\n";
-    }
+  const resto = soma % 11;
+
+  if (resto === 0) {
+    return "0";
+  } else if (resto === 1) {
+    return "0";
+  } else {
+    return (11 - resto).toString();
+  }
+}
+
+/**
+ * Calcula o DAC do Nosso Número do Bradesco (Módulo 11 base 7)
+ * Conforme documentação: Carteira (3) + Nosso Número (11)
+ * Algumas carteiras especiais (126, 131, 146, 150, 168) usam apenas Carteira + Nosso Número
+ * Outras carteiras usam Agência + Conta + Carteira + Nosso Número
+ *
+ * @param agencia - Código da agência (4 dígitos)
+ * @param conta - Código da conta (7 dígitos)
+ * @param carteira - Código da carteira (3 dígitos)
+ * @param nossoNumero - Nosso número (11 dígitos)
+ * @returns O DAC calculado (string, pode ser "P" se resultado for 10)
+ */
+export function calculateDacNossoNumero(
+  agencia: string,
+  conta: string,
+  carteira: string,
+  nossoNumero: string,
+): string {
+  // Carteiras especiais que usam apenas Carteira + Nosso Número
+  const carteirasEspeciais = ["126", "131", "146", "150", "168"];
+
+  let baseCalculo: string;
+
+  if (carteirasEspeciais.includes(carteira.padStart(3, "0").slice(-3))) {
+    // Exceção: A base é apenas Carteira + Nosso Número
+    baseCalculo =
+      carteira.padStart(3, "0").slice(-3) +
+      nossoNumero.padStart(11, "0").slice(-11);
+  } else {
+    // Regra geral: Agência + Conta + Carteira + Nosso Número
+    baseCalculo =
+      agencia.padStart(4, "0").slice(-4) +
+      conta.padStart(7, "0").slice(-7) +
+      carteira.padStart(3, "0").slice(-3) +
+      nossoNumero.padStart(11, "0").slice(-11);
   }
 
-  // 4. Detalhes Tipo 4 (Rateio de Crédito)
-  if (data.detail4Records) {
-    for (const detail4 of data.detail4Records) {
-      fileContent +=
-        "4" + // Pos 1: Identificação do Registro
-        alpha("", 392) + // Pos 2-393: Brancos (campos específicos do rateio conforme necessário)
-        alpha(detail4.valueType, 1) + // Pos 394: Tipo de Valor
-        num(String(sequentialNumber++), 6) + // Pos 395-400: Número Sequencial
-        "\n";
-    }
+  // Sequência de pesos: 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, ...
+  const pesos = [2, 3, 4, 5, 6, 7];
+  let soma = 0;
+
+  // Multiplicar da direita para a esquerda
+  for (let i = baseCalculo.length - 1; i >= 0; i--) {
+    const digito = parseInt(baseCalculo[i]);
+    const peso = pesos[(baseCalculo.length - 1 - i) % 6];
+    soma += digito * peso;
   }
 
-  // 5. Detalhes Tipo 5 (E-mail e Endereço do Sacador/Avalista)
-  if (data.detail5Records) {
-    for (const detail5 of data.detail5Records) {
-      fileContent +=
-        "5" + // Pos 1: Identificação do Registro
-        alpha(detail5.payerEmail, 120) + // Pos 2-121: E-mail do Pagador para Envio do Boleto
-        num(detail5.drawerTaxIdType, 2) + // Pos 122-123: Tipo de Inscrição do Sacador/Avalista
-        num(detail5.drawerTaxId, 14) + // Pos 124-137: CNPJ/CPF do Sacador/Avalista
-        alpha(detail5.drawerAddress, 40) + // Pos 138-177: Endereço do Sacador/Avalista
-        alpha("", 180) + // Pos 178-394: Brancos (outros campos de endereço conforme necessário)
-        num(String(sequentialNumber++), 6) + // Pos 395-400: Número Sequencial
-        "\n";
-    }
+  const resto = soma % 11;
+
+  // Exceções conforme documentação
+  if (resto === 0) {
+    return "0";
+  } else if (resto === 1) {
+    return "P"; // 11-1 = 10
+  } else {
+    return (11 - resto).toString();
   }
-
-  // 6. Trailer (Registro Tipo 9)
-  fileContent +=
-    "9" + // Pos 1: Identificação do Registro
-    alpha("", 393) + // Pos 2-394: Brancos
-    num(String(sequentialNumber), 6) + // Pos 395-400: Número Sequencial do Registro
-    "\n";
-
-  return fileContent;
 }
 
 /**
  * Calcula o DAC do Código de Barras (Módulo 11)
- * Anexo 2: Cálculo do DAC do Código de Barras (Módulo 11)
  * @param codigoBarras43Digitos - Os 43 dígitos do código de barras (sem a 5ª posição)
  * @returns O DAC calculado
  */
@@ -864,7 +1188,6 @@ export function calculateDacCodigoBarras(
     throw new Error("Código de barras deve ter exatamente 43 dígitos");
   }
 
-  // Sequência de multiplicadores: 2, 3, 4, 5, 6, 7, 8, 9, 2, 3, ...
   const multiplicadores = [2, 3, 4, 5, 6, 7, 8, 9];
   let soma = 0;
 
@@ -888,12 +1211,10 @@ export function calculateDacCodigoBarras(
 
 /**
  * Calcula o DAC da Representação Numérica (Módulo 10)
- * Anexo 3: Cálculo do DAC da Representação Numérica (Módulo 10)
- * @param campo - O campo para calcular o DAC (ex: Campo 1, 2 ou 3 da Linha Digitável)
+ * @param campo - O campo para calcular o DAC
  * @returns O DAC calculado
  */
 export function calculateDacRepresentacaoNumerica(campo: string): string {
-  // Sequência de multiplicadores: 2, 1, 2, 1, ...
   const multiplicadores = [2, 1];
   let soma = 0;
 
@@ -923,102 +1244,41 @@ export function calculateDacRepresentacaoNumerica(campo: string): string {
 }
 
 /**
- * Calcula o DAC do "Nosso Número"
- * Anexo 4: Cálculo do DAC do "Nosso Número"
- * @param agencia - Código da agência (4 dígitos)
- * @param conta - Código da conta (5 dígitos)
- * @param carteira - Código da carteira (3 dígitos)
- * @param nossoNumero - Nosso número (8 dígitos)
- * @returns O DAC calculado
- */
-export function calculateDacNossoNumero(
-  agencia: string,
-  conta: string,
-  carteira: string,
-  nossoNumero: string,
-): string {
-  // Carteiras especiais que usam apenas Carteira + Nosso Número
-  const carteirasEspeciais = ["126", "131", "146", "150", "168"];
-
-  let baseCalculo: string;
-
-  if (carteirasEspeciais.includes(carteira)) {
-    // Exceção: A base é apenas Carteira + Nosso Número
-    baseCalculo = carteira + nossoNumero;
-  } else {
-    // Regra geral: Agência + Conta + Carteira + Nosso Número
-    baseCalculo = agencia + conta + carteira + nossoNumero;
-  }
-
-  return calculateDacRepresentacaoNumerica(baseCalculo);
-}
-
-/**
- * Calcula o DAC da Agência/Conta
- * @param agencia - Código da agência (4 dígitos)
- * @param conta - Código da conta (5 dígitos)
- * @returns O DAC calculado
- */
-export function calculateDacAgenciaConta(
-  agencia: string,
-  conta: string,
-): string {
-  const baseCalculo = agencia + conta;
-  return calculateDacRepresentacaoNumerica(baseCalculo);
-}
-
-/**
- * Calcula o DAC do Campo Livre do Código de Barras
- * @param carteira - Código da carteira (3 dígitos)
- * @param nossoNumero - Nosso número (8 dígitos)
- * @param agencia - Código da agência (4 dígitos)
- * @param conta - Código da conta (5 dígitos)
- * @returns O DAC calculado
- */
-export function calculateDacCampoLivre(
-  carteira: string,
-  nossoNumero: string,
-  agencia: string,
-  conta: string,
-): string {
-  // Campo Livre: Carteira + Nosso Número + DAC + Agência + Conta + DAC + Zeros
-  const baseCalculo = carteira + nossoNumero + agencia + conta;
-  return calculateDacRepresentacaoNumerica(baseCalculo);
-}
-
-/**
- * Calcula o fator de vencimento para boletos bancários, conforme padrão Febraban.
- * O fator de vencimento é o número de dias decorridos desde a data base (03/07/2000),
- * módulo 9000, somado a 1000, e preenchido à esquerda com zeros para 4 dígitos.
+ * Calcula o fator de vencimento para boletos bancários.
+ * Para Bradesco: data base 07/10/1997
  *
  * @param dueDate - Data de vencimento como objeto Date (UTC).
  * @returns O fator de vencimento com 4 dígitos, como string.
- *
- * Exemplo:
- *   calculateDueFactor(new Date("2000-07-03")) // "1000"
- *   calculateDueFactor(new Date("2025-02-21")) // "9999"
  */
 export function calculateDueFactor(dueDate: Date): string {
-  const base = Date.UTC(2000, 6, 3);
+  const base = Date.UTC(1997, 9, 7); // 07/10/1997
   const actualDate = Date.UTC(
     dueDate.getUTCFullYear(),
     dueDate.getUTCMonth(),
     dueDate.getUTCDate(),
   );
   const daysDiff = Math.floor((actualDate - base) / (1000 * 60 * 60 * 24));
-  const cycle = ((daysDiff % 9000) + 9000) % 9000;
-  const factor = 1000 + cycle;
+
+  let factor = 0;
+
+  if (daysDiff <= 9999) {
+    factor = daysDiff;
+  } else {
+    // A partir de 22/02/2025, retorna para 1000
+    factor = ((daysDiff % 9000) + 9000) % 9000;
+  }
+
   const dueFactor = factor.toString().padStart(4, "0");
 
   return dueFactor;
 }
 
 /**
- * Gera o código de barras completo (44 posições)
+ * Gera o código de barras completo (44 posições) para Bradesco
  * @param carteira - Código da carteira (3 dígitos)
- * @param nossoNumero - Nosso número (8 dígitos)
+ * @param nossoNumero - Nosso número (11 dígitos)
  * @param agencia - Código da agência (4 dígitos)
- * @param conta - Código da conta (5 dígitos)
+ * @param conta - Código da conta (7 dígitos)
  * @param valor - Valor do título (sem vírgula, ex: 12345 para R$ 123,45)
  * @param vencimento - Data de vencimento
  * @returns O código de barras completo de 44 posições
@@ -1043,23 +1303,15 @@ export function generateCodigoBarras(
   // 10-19: Valor do Título (com 2 casas decimais)
   const valorFormatado = valor.padStart(10, "0").slice(-10);
 
-  // 20-44: Campo Livre
-  const dacNossoNumero = calculateDacNossoNumero(
-    agencia,
-    conta,
-    carteira,
-    nossoNumero.padStart(8, "0").slice(-8),
-  );
-  const dacAgenciaConta = calculateDacAgenciaConta(agencia, conta);
+  // 20-44: Campo Livre (25 posições)
+  // Carteira (3) + Nosso Número (11) + Agência (4) + Conta (7) + Zero (1)
 
   const campoLivre =
-    carteira.padStart(3, "0").slice(-3) +
-    nossoNumero.padStart(8, "0").slice(-8) +
-    dacNossoNumero +
     agencia.padStart(4, "0").slice(-4) +
-    conta.padStart(5, "0").slice(-5) +
-    dacAgenciaConta +
-    "000"; // Zeros
+    carteira.padStart(2, "0").slice(-2) +
+    nossoNumero.padStart(11, "0").slice(-11) +
+    conta.padStart(7, "0").slice(-7) +
+    "0"; // Zero final
 
   // Montar código de barras sem o DAC (43 posições)
   const codigoBarras43Digitos =
@@ -1081,7 +1333,7 @@ export function generateCodigoBarras(
 }
 
 /**
- * Gera a linha digitável (IPTE - 47 posições)
+ * Gera a linha digitável (IPTE - 47 posições) para Bradesco
  * @param codigoBarras - Código de barras completo (44 posições)
  * @returns A linha digitável formatada
  */
@@ -1090,35 +1342,34 @@ export function generateLinhaDigitavel(codigoBarras: string): string {
     throw new Error("Código de barras deve ter exatamente 44 posições");
   }
 
-  const carteira = codigoBarras.substring(19, 22);
-  const nossoNumero = codigoBarras.substring(22, 30);
-  const agencia = codigoBarras.substring(31, 35);
-  const conta = codigoBarras.substring(35, 40);
-
-  const dacNossoNumero = calculateDacNossoNumero(
-    agencia,
-    conta,
-    carteira,
-    nossoNumero,
-  );
-  const dacConta = calculateDacRepresentacaoNumerica(conta);
-
   // Extrair campos do código de barras
-  const campo1Base = `2379${carteira}${nossoNumero.slice(0, 2)}`;
-  const campo2Base = `${nossoNumero.slice(2, 8)}${dacNossoNumero}${agencia.slice(0, 3)}`;
-  const campo3Base = `${agencia.slice(3, 4)}${conta}${dacConta}000`;
-  const campo4 = codigoBarras.substring(4, 5); // DAC do código de barras
-  const campo5 = codigoBarras.substring(5, 9) + codigoBarras.substring(9, 19); // Fator + Valor
+  const bankCode = codigoBarras.substring(0, 3); // 237
+  const currencyCode = codigoBarras.substring(3, 4); // 9
+  const dacBarcode = codigoBarras.substring(4, 5);
+  const dueFactor = codigoBarras.substring(5, 9);
+  const value = codigoBarras.substring(9, 19);
+  const freeField = codigoBarras.substring(19, 44); // 25 posições
 
-  // Calcular DACs dos campos
+  // Campo 1: Banco (3) + Moeda (1) + Primeiros 5 do campo livre
+  const campo1Base = bankCode + currencyCode + freeField.substring(0, 5);
   const dacCampo1 = calculateDacRepresentacaoNumerica(campo1Base);
-  const dacCampo2 = calculateDacRepresentacaoNumerica(campo2Base);
-  const dacCampo3 = calculateDacRepresentacaoNumerica(campo3Base);
-
-  // Montar campos com DACs
   const campo1 = campo1Base + dacCampo1;
+
+  // Campo 2: Próximos 10 do campo livre
+  const campo2Base = freeField.substring(5, 15);
+  const dacCampo2 = calculateDacRepresentacaoNumerica(campo2Base);
   const campo2 = campo2Base + dacCampo2;
+
+  // Campo 3: Últimos 10 do campo livre
+  const campo3Base = freeField.substring(15, 25);
+  const dacCampo3 = calculateDacRepresentacaoNumerica(campo3Base);
   const campo3 = campo3Base + dacCampo3;
+
+  // Campo 4: DAC do código de barras
+  const campo4 = dacBarcode;
+
+  // Campo 5: Fator de vencimento + Valor
+  const campo5 = dueFactor + value;
 
   // Formatar linha digitável
   const linhaDigitavel =
