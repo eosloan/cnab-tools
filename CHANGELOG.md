@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.12
+
+### Patch Changes
+
+- f418eb8: Corrigido parse do Nosso Número no retorno do Bradesco 400
+
 ## 0.1.11
 
 ### Patch Changes
