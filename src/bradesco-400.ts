@@ -730,7 +730,7 @@ export function parseRetornoDetail1(
     companyIdentification: line.substring(20, 37),
     yourNumber: line.substring(37, 62),
     zeros2: line.substring(62, 70),
-    ourNumber: line.substring(70, 82),
+    ourNumber: line.substring(70, 81),
     bankUse1: line.substring(82, 92),
     bankUse2: line.substring(92, 104),
     creditSplitIndicator: line[104],

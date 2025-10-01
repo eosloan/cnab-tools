@@ -337,7 +337,7 @@ describe("bradesco-400", () => {
           occurrenceReason: " ",
           otherCosts: "0000000000000",
           otherCredits: "0000000000000",
-          ourNumber: "634277550018",
+          ourNumber: "63427755001",
           ourNumberWithDac: "00000000634277550018",
           paidAmount: "0000000000000",
           partialPayment: "00",
