@@ -128,4 +128,13 @@ describe("itau-400", () => {
       "34191.09008 00446.010001 00000.000000 5 12070000087777",
     );
   });
+
+  it("generates remessa with CRLF line endings", async () => {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const original = await fs.readFile(path.resolve(__dirname, "VALID.txt"));
+    const { entries: bmpEntries } = parse(original);
+    const generated = generate(bmpEntries);
+    expect(generated.includes("\r\n")).toBe(true);
+  });
 });
