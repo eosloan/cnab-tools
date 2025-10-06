@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.13
+
+### Patch Changes
+
+- 096ab7d: Corrigido fim de linha para CRLF
+
 ## 0.1.12
 
 ### Patch Changes
