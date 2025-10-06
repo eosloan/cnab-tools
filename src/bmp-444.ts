@@ -390,7 +390,7 @@ export function generate(entries: BMPCnab444Record[]): string {
       fileContent += "9" + alpha("", 437) + num(entry.recordSequence, 6);
     }
 
-    fileContent += "\n";
+    fileContent += "\r\n";
   }
 
   return fileContent;

@@ -93,7 +93,7 @@ describe("bradesco-400", () => {
         serviceCode: "01",
         serviceLiteral: "COBRANCA",
       };
-      const line = generate([header]).split("\n")[0];
+      const line = generate([header]).split("\r\n")[0];
       expect(line).toBe(
         "01REMESSA01COBRANCA       00000000000006026019EOS FINANCIAMENTO FUNDO DE INV237BRADESCO       190925        MX0000001                                                                                                                                                                                                                                                                                     000001",
       );
@@ -147,7 +147,7 @@ describe("bradesco-400", () => {
         finalBeneficiaryOrSecondMessage: "",
         sequentialNumber: "000002",
       };
-      const line = generate([detail1]).split("\n")[0];
+      const line = generate([detail1]).split("\r\n")[0];
       expect(line).toBe(
         "100000000000000000000009033960007007600000002720001000000034742372020062769979001500000000002N           2  01627699790118102500000000881200000000001N190925000000000000002340000000000000000000000000000000000000000000000100012345678901GEOVANI XXXXX XXXXXXXXX XXXXXX DOS REIS RUA TESTE 123 CENTRO                                15808999                                                            000002",
       );
@@ -159,10 +159,19 @@ describe("bradesco-400", () => {
         blanks1: "",
         sequentialNumber: "938",
       };
-      const line = generate([trailer]).split("\n")[0];
+      const line = generate([trailer]).split("\r\n")[0];
       expect(line).toBe(
         "9                                                                                                                                                                                                                                                                                                                                                                                                         000938",
       );
+    });
+
+    it("generates remessa with CRLF line endings", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const original = await fs.readFile(path.resolve(__dirname, "MINI.REM"));
+      const { entries: bmpEntries } = parse(original);
+      const generated = generate(bmpEntries);
+      expect(generated.includes("\r\n")).toBe(true);
     });
   });
 

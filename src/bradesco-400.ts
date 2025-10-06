@@ -1076,7 +1076,7 @@ export function generate(entries: BradescoCnab400Record[]): string {
       const e = entry as BradescoCnab400RemessaTrailer;
       fileContent += "9" + alpha("", 393) + num(e.sequentialNumber, 6);
     }
-    fileContent += "\n";
+    fileContent += "\r\n";
   }
   return fileContent;
 }

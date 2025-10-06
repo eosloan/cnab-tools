@@ -616,7 +616,7 @@ export function generate(entries: ItauCnab400Record[]): string {
     } else {
       throw new Error("Geração não suportada para registros de retorno");
     }
-    fileContent += "\n";
+    fileContent += "\r\n";
   }
   return fileContent;
 }
