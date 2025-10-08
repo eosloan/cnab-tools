@@ -85,7 +85,7 @@ describe("santander-240", () => {
       );
     });
 
-    it.only("parse retorno without errors", async () => {
+    it("parse retorno without errors", async () => {
       const fs = await import("fs/promises");
       const path = await import("path");
       const retPath = path.resolve(__dirname, "MINI.RET");
