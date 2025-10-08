@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.14
+
+### Patch Changes
+
+- 3075b84: Santander 240
+
 ## 0.1.13
 
 ### Patch Changes
