@@ -887,7 +887,7 @@ export function parseRetorno(
 
   let lineIndex = 0;
 
-  for (const line of lines) {
+  for (const line of lines.map((line) => line.padEnd(layout, " "))) {
     if (line.length !== layout) {
       throw new LineLengthError({
         prefix,

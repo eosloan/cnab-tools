@@ -7,7 +7,7 @@ import {
 } from "../../src/santander-240";
 
 describe("santander-240", () => {
-  it.only.each(["MINI.REM"])(
+  it.each(["MINI.REM"])(
     "generate output matches original %s file (roundtrip snapshot)",
     async (file) => {
       const fs = await import("fs/promises");
@@ -83,6 +83,15 @@ describe("santander-240", () => {
       expect(generated).toBe(
         "03300011R01  030 2099999999000199                    227100000449167     EOS FUNDO DE INVESTIMENTO EM D                                                                                0000060616092025                                         ",
       );
+    });
+
+    it.only("parse retorno without errors", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const retPath = path.resolve(__dirname, "MINI.RET");
+      const ret = await fs.readFile(retPath, "utf8");
+
+      parse(ret);
     });
   });
 });
