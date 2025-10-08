@@ -20,6 +20,10 @@
     "./bradesco-400": {
       "import": "./dist/bradesco-400.mjs",
       "require": "./dist/bradesco-400.js"
+    },
+    "./santander-240": {
+      "import": "./dist/santander-240.mjs",
+      "require": "./dist/santander-240.js"
     }
   },
   "files": [
