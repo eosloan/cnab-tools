@@ -1,5 +1,12 @@
 # @eosloan/cnab-tools
 
+## 0.1.15
+
+### Patch Changes
+
+- f53e734: Adicionado gerador de código de barras e linha digitável para Santander 240
+- f53e734: Santander 240
+
 ## 0.1.14
 
 ### Patch Changes
