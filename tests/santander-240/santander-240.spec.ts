@@ -6,6 +6,7 @@ import {
   type SantanderCnab240RemessaBatchHeader,
   generateCodigoBarras,
   generateLinhaDigitavel,
+  calculateDueFactor,
 } from "../../src/santander-240";
 
 describe("santander-240", () => {
@@ -94,6 +95,20 @@ describe("santander-240", () => {
       const ret = await fs.readFile(retPath, "utf8");
 
       parse(ret);
+    });
+
+    it.each([
+      { date: new Date("2000-07-03"), expected: "1000" },
+      { date: new Date("2000-07-04"), expected: "1001" },
+      { date: new Date("2000-07-05"), expected: "1002" },
+      { date: new Date("2002-05-01"), expected: "1667" },
+      { date: new Date("2010-11-17"), expected: "4789" },
+      { date: new Date("2025-02-21"), expected: "9999" },
+      { date: new Date("2025-02-22"), expected: "1000" },
+      { date: new Date("2025-02-23"), expected: "1001" },
+      { date: new Date("2025-02-24"), expected: "1002" },
+    ])("should calculate due factor for date $date", ({ date, expected }) => {
+      expect(calculateDueFactor(date)).toBe(expected);
     });
 
     it("generates barcode correctly", () => {
