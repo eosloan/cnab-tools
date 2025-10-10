@@ -1496,14 +1496,14 @@ export function calculateDacModulo10(campo: string): string {
  * @returns O fator de vencimento com 4 dígitos, como string
  */
 export function calculateDueFactor(dueDate: Date): string {
-  const baseDate = new Date(Date.UTC(1997, 9, 7)); // 07/10/1997
-  const targetDate = new Date(
-    Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()),
+  const baseDate = Date.UTC(1997, 9, 7); // 07/10/1997
+  const targetDate = Date.UTC(
+    dueDate.getFullYear(),
+    dueDate.getMonth(),
+    dueDate.getDate(),
   );
 
-  const daysDiff = Math.floor(
-    (targetDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const daysDiff = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
 
   const range = 9000;
   const cycle = (((daysDiff - 1000 + 1) % range) + range) % range;
