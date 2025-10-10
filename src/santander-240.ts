@@ -1498,18 +1498,25 @@ export function calculateDacModulo10(campo: string): string {
 export function calculateDueFactor(dueDate: Date): string {
   const baseDate = Date.UTC(1997, 9, 7); // 07/10/1997
   const targetDate = Date.UTC(
-    dueDate.getFullYear(),
-    dueDate.getMonth(),
-    dueDate.getDate(),
+    dueDate.getUTCFullYear(),
+    dueDate.getUTCMonth(),
+    dueDate.getUTCDate(),
   );
 
   const daysDiff = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
 
-  const range = 9000;
-  const cycle = (((daysDiff - 1000 + 1) % range) + range) % range;
-  const factor = 1000 + cycle;
+  let factor = 0;
 
-  return factor.toString().padStart(4, "0");
+  if (daysDiff <= 9999) {
+    factor = daysDiff;
+  } else {
+    // A partir de 22/02/2025, retorna para 1000
+    factor = ((daysDiff % 9000) + 9000) % 9000;
+  }
+
+  const dueFactor = factor.toString().padStart(4, "0");
+
+  return dueFactor;
 }
 
 /**
