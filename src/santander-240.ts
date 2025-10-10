@@ -1435,3 +1435,228 @@ export function calculateDacNossoNumero(nossoNumero: string): string {
 
   return dac.toString();
 }
+
+/**
+ * Calcula o DAC do Código de Barras usando Módulo 11
+ * Utilizado para a posição 5 do código de barras
+ */
+export function calculateDacCodigoBarras(
+  codigoBarras43Digitos: string,
+): string {
+  const multiplicadores = [2, 3, 4, 5, 6, 7, 8, 9];
+  let soma = 0;
+
+  // Multiplicar da direita para a esquerda
+  for (let i = codigoBarras43Digitos.length - 1; i >= 0; i--) {
+    const digito = parseInt(codigoBarras43Digitos[i]);
+    const multiplicador =
+      multiplicadores[(codigoBarras43Digitos.length - 1 - i) % 8];
+    soma += digito * multiplicador;
+  }
+
+  soma *= 10;
+  const mod = soma % 11;
+
+  // Exceção: Se o resultado for 0, 1 ou 10, o DAC será 1
+  return mod === 0 || mod === 1 || mod === 10 ? "1" : mod.toString();
+}
+
+/**
+ * Calcula o DAC usando Módulo 10
+ * Utilizado para os campos da linha digitável
+ */
+export function calculateDacModulo10(campo: string): string {
+  const multiplicadores = [2, 1];
+  let soma = 0;
+
+  // Multiplicar da direita para a esquerda
+  for (let i = campo.length - 1; i >= 0; i--) {
+    const digito = parseInt(campo[i]);
+    const multiplicador = multiplicadores[(campo.length - 1 - i) % 2];
+    let resultado = digito * multiplicador;
+
+    // Se o resultado for maior que 9, somar os algarismos
+    if (resultado > 9) {
+      resultado = Math.floor(resultado / 10) + (resultado % 10);
+    }
+
+    soma += resultado;
+  }
+
+  const mod = soma % 10;
+  return mod === 0 ? "0" : (10 - mod).toString();
+}
+
+/**
+ * Calcula o fator de vencimento para boletos bancários, conforme padrão Febraban.
+ * O fator de vencimento é o número de dias decorridos desde a data base (07/10/1997),
+ * com ciclo de 9000 dias, iniciando em 1000.
+ *
+ * @param dueDate - Data de vencimento como objeto Date
+ * @returns O fator de vencimento com 4 dígitos, como string
+ */
+export function calculateDueFactor(dueDate: Date): string {
+  const baseDate = new Date(Date.UTC(1997, 9, 7)); // 07/10/1997
+  const targetDate = new Date(
+    Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()),
+  );
+
+  const daysDiff = Math.floor(
+    (targetDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  const range = 9000;
+  const cycle = (((daysDiff - 1000 + 1) % range) + range) % range;
+  const factor = 1000 + cycle;
+
+  return factor.toString().padStart(4, "0");
+}
+
+/**
+ * Gera o código de barras completo (44 posições) para boleto Santander
+ * @param transmissionCode - Código de transmissão (15 dígitos)
+ * @param ourNumber - Nosso número (13 dígitos)
+ * @param walletNumber - Código do tipo de cobrança (1 dígito)
+ * @param valor - Valor do título em centavos (ex: 12345 para R$ 123,45)
+ * @param vencimento - Data de vencimento
+ * @param currencyCode - Código da moeda (padrão: '00' para Real)
+ * @returns O código de barras completo de 44 posições
+ */
+export function generateCodigoBarras(
+  transmissionCode: string,
+  ourNumber: string,
+  walletNumber: string,
+  valor: string | number,
+  vencimento: Date,
+  currencyCode: string = "00",
+): string {
+  // Mapas de conversão conforme santander-cnab.service.ts
+  const currencyCodeMap: Record<string, string> = {
+    "00": "9",
+  };
+
+  const invoiceTypeCodeMap: Record<string, string> = {
+    "1": "104",
+    "3": "104",
+    "4": "104",
+    "5": "101",
+    "6": "101",
+    "7": "101",
+    "8": "104",
+    "9": "101",
+  };
+
+  // 1-3: Código do Banco (033)
+  const codigoBanco = "033";
+
+  // 4: Código da Moeda
+  const codigoMoeda = currencyCodeMap[currencyCode] || "9";
+
+  // 6-9: Fator de Vencimento
+  const fatorVenc = calculateDueFactor(vencimento);
+
+  // 10-19: Valor do Título (10 dígitos)
+  const valorFormatado = String(valor).padStart(10, "0").slice(-10);
+
+  // 20-44: Campo Livre (25 dígitos)
+  // 1 dígito fixo: '9'
+  // 7 dígitos: código de transmissão (últimos 7)
+  // 13 dígitos: nosso número (últimos 13)
+  // 1 dígito fixo: '0'
+  // 3 dígitos: código do tipo de boleto
+  const beneficiaryCode = transmissionCode.slice(-7).padStart(7, "0");
+  const nossoNumeroFormatado = ourNumber.slice(-13).padStart(13, "0");
+  const tipoCobranca = invoiceTypeCodeMap[walletNumber] || "104";
+
+  const campoLivre =
+    "9" + beneficiaryCode + nossoNumeroFormatado + "0" + tipoCobranca;
+
+  // Montar código de barras sem o DAC (43 posições)
+  const codigoBarras43Digitos =
+    codigoBanco + codigoMoeda + fatorVenc + valorFormatado + campoLivre;
+
+  // Calcular DAC do código de barras (posição 5)
+  const dacCodigoBarras = calculateDacCodigoBarras(codigoBarras43Digitos);
+
+  // Código de barras completo: posições 1-4, DAC, posições 6-44
+  const codigoBarrasCompleto =
+    codigoBanco +
+    codigoMoeda +
+    dacCodigoBarras +
+    fatorVenc +
+    valorFormatado +
+    campoLivre;
+
+  return codigoBarrasCompleto;
+}
+
+/**
+ * Gera a linha digitável a partir do código de barras Santander
+ * A linha digitável é composta por 5 campos separados, totalizando 47 posições
+ *
+ * @param codigoBarras - Código de barras completo (44 posições)
+ * @returns A linha digitável formatada (47 dígitos + separadores)
+ */
+export function generateLinhaDigitavel(codigoBarras: string): string {
+  if (codigoBarras.length !== 44) {
+    throw new Error("Código de barras deve ter exatamente 44 posições");
+  }
+
+  // Extrair componentes do código de barras
+  const codigoBanco = codigoBarras.substring(0, 3); // 033
+  const codigoMoeda = codigoBarras.substring(3, 4); // 9
+  const dvCodigoBarras = codigoBarras.substring(4, 5); // DV geral
+  const fatorVencimento = codigoBarras.substring(5, 9);
+  const valor = codigoBarras.substring(9, 19);
+  const campoLivre = codigoBarras.substring(19, 44); // 25 dígitos
+
+  // Extrair partes do campo livre
+  const fixo1 = campoLivre.substring(0, 1); // '9'
+  const beneficiaryCode = campoLivre.substring(1, 8); // 7 dígitos
+  const nossoNumero = campoLivre.substring(8, 21); // 13 dígitos
+  const fixo2 = campoLivre.substring(21, 22); // '0'
+  const tipoCobranca = campoLivre.substring(22, 25); // 3 dígitos
+
+  // Campo 1: Banco (3) + Moeda (1) + Código Moeda (1) + Primeiros 4 do beneficiaryCode (4) + DV (1) = 10 dígitos
+  const campo1Base =
+    codigoBanco + fixo1 + codigoMoeda + beneficiaryCode.substring(0, 4);
+  const dvCampo1 = calculateDacModulo10(campo1Base);
+  const campo1 = campo1Base + dvCampo1;
+
+  // Campo 2: Últimos 3 do beneficiaryCode (3) + Primeiros 7 do Nosso Número (7) + DV (1) = 11 dígitos
+  const campo2Base =
+    beneficiaryCode.substring(4, 7) + nossoNumero.substring(0, 7);
+  const dvCampo2 = calculateDacModulo10(campo2Base);
+  const campo2 = campo2Base + dvCampo2;
+
+  // Campo 3: Últimos 6 do Nosso Número (6) + Fixo '0' (1) + Tipo Cobrança (3) + DV (1) = 11 dígitos
+  const campo3Base = nossoNumero.substring(7, 13) + fixo2 + tipoCobranca;
+  const dvCampo3 = calculateDacModulo10(campo3Base);
+  const campo3 = campo3Base + dvCampo3;
+
+  // Campo 4: DV do código de barras = 1 dígito
+  const campo4 = dvCodigoBarras;
+
+  // Campo 5: Fator Vencimento (4) + Valor (10) = 14 dígitos
+  const campo5 = fatorVencimento + valor;
+
+  // Formatar linha digitável com separadores
+  const linhaDigitavel =
+    campo1.substring(0, 5) +
+    "." +
+    campo1.substring(5, 10) +
+    " " +
+    campo2.substring(0, 5) +
+    "." +
+    campo2.substring(5, 11) +
+    " " +
+    campo3.substring(0, 5) +
+    "." +
+    campo3.substring(5, 11) +
+    " " +
+    campo4 +
+    " " +
+    campo5;
+
+  return linhaDigitavel;
+}
