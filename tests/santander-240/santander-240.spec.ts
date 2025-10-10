@@ -4,6 +4,8 @@ import {
   generate,
   type SantanderCnab240RemessaFileHeader,
   type SantanderCnab240RemessaBatchHeader,
+  generateCodigoBarras,
+  generateLinhaDigitavel,
 } from "../../src/santander-240";
 
 describe("santander-240", () => {
@@ -92,6 +94,31 @@ describe("santander-240", () => {
       const ret = await fs.readFile(retPath, "utf8");
 
       parse(ret);
+    });
+
+    it("generates barcode correctly", () => {
+      const barcode = generateCodigoBarras(
+        "227100000449167",
+        "378933",
+        "5",
+        "37751",
+        new Date("2032-10-01"),
+      );
+      expect(barcode).toBe("03394377800000377519044916700000003789330101");
+    });
+
+    it("generates typeableline correctly", () => {
+      const barcode = generateCodigoBarras(
+        "227100000449167",
+        "378933",
+        "5",
+        "37751",
+        new Date("2032-10-01"),
+      );
+      const typeableline = generateLinhaDigitavel(barcode);
+      expect(typeableline).toBe(
+        "03399.04492 16700.000009 37893.301012 4 37780000037751",
+      );
     });
   });
 });
