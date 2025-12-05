@@ -36,7 +36,7 @@ export type BradescoCnab400RemessaDetail1 = {
   debitAccountDigit: string; // 1 - Opcional
   companyIdentification: string; // 17 - Zero, Carteira, Agência e Conta-Corrente
   yourNumber: string; // 25 - Nº Controle do Participante
-  bankCode: "237"; // 3
+  bankCode: string; // 3 - "237" para débito automático, "000" para sem débito automático
   penaltyField: string; // 1 - 0=sem multa, 2=percentual
   penaltyPercentage: string; // 4
   ourNumber: string; // 11 - Identificação do Título no Banco
@@ -297,7 +297,7 @@ export type BradescoCnab400RetornoTrailer = {
   recordType: "9";
   returnId: "2"; // 1
   recordTypeId: "01"; // 2
-  bankCode: "237"; // 3
+  bankCode: string; // 3 - "237" para débito automático, "000" para sem débito automático
   blanks1: string; // 10
   titlesInCollectionQty: string; // 8
   titlesInCollectionValue: string; // 14
@@ -539,7 +539,7 @@ export function parseRemessaDetail1(
     debitAccountDigit: line[19],
     companyIdentification: line.substring(20, 37),
     yourNumber: line.substring(37, 62),
-    bankCode: line.substring(62, 65) as "237",
+    bankCode: line.substring(62, 65),
     penaltyField: line[65],
     penaltyPercentage: line.substring(66, 70),
     ourNumber: line.substring(70, 81),
@@ -939,7 +939,7 @@ export function generate(entries: BradescoCnab400Record[]): string {
         num(e.debitAccountDigit, 1) +
         alpha(e.companyIdentification, 17) +
         alpha(e.yourNumber, 25) +
-        num("237", 3) +
+        num(e.bankCode || "000", 3) +
         alpha(e.penaltyField, 1) +
         num(e.penaltyPercentage, 4) +
         num(e.ourNumber, 11) +
