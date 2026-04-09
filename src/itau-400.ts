@@ -871,7 +871,7 @@ export function generateLinhaDigitavel(codigoBarras: string): string {
     carteira,
     nossoNumero,
   );
-  const dacConta = calculateDacRepresentacaoNumerica(conta);
+  const dacConta = calculateDacAgenciaConta(agencia, conta);
 
   // Extrair campos do código de barras
   const campo1Base = `3419${carteira}${nossoNumero.slice(0, 2)}`;

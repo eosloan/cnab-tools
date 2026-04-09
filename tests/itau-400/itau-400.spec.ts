@@ -113,21 +113,41 @@ describe("itau-400", () => {
     expect(barcode).toBe("34194100000000100001091234567841234567897000");
   });
 
-  it("generate typeable line", () => {
-    const barcode = generateCodigoBarras(
-      "109",
-      "00004460",
-      "0000",
-      "00000",
-      "87777",
-      new Date("2025-09-17"),
-    );
-    const typeableLine = generateLinhaDigitavel(barcode);
-    expect(typeableLine.replace(/[^0-9]/g, "")).toHaveLength(47);
-    expect(typeableLine).toBe(
-      "34191.09008 00446.010001 00000.000000 5 12070000087777",
-    );
-  });
+  it.each([
+    {
+      nossoNumero: "00004460",
+      agencia: "0000",
+      conta: "00000",
+      valor: "87777",
+      vencimento: new Date("2025-09-17"),
+      expected: "34191.09008 00446.010001 00000.000000 5 12070000087777",
+    },
+    {
+      nossoNumero: "63625002",
+      agencia: "8499",
+      conta: "32972",
+      valor: "46800",
+      vencimento: new Date("2026-05-10"),
+      expected: "34191.09636 62500.218490 93297.230000 9 14420000046800",
+    },
+  ])(
+    "generate typeable line correctly (${nossoNumero})",
+    ({ nossoNumero, agencia, conta, valor, vencimento, expected }) => {
+      const barcode = generateCodigoBarras(
+        "109",
+        nossoNumero,
+        agencia,
+        conta,
+        valor,
+        vencimento,
+      );
+      const typeableLine = generateLinhaDigitavel(barcode);
+      expect(typeableLine.replace(/[^0-9]/g, "")).toHaveLength(47);
+      expect(typeableLine).toBe(expected);
+    },
+  );
+
+  it("generate typeable line", () => {});
 
   it("generates remessa with CRLF line endings", async () => {
     const fs = await import("fs/promises");
