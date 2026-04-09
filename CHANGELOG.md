@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.17
+
+### Patch Changes
+
+- 2da3d40: Corrigido cálculo da linha digitável para o Itau 400
+
 ## 0.1.15
 
 ### Patch Changes
