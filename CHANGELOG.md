@@ -1,5 +1,11 @@
 # @eosloan/cnab-tools
 
+## 0.1.18
+
+### Patch Changes
+
+- f7b70cf: Corrigido geração de remessa BMP
+
 ## 0.1.17
 
 ### Patch Changes
