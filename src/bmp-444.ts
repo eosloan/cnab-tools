@@ -307,10 +307,12 @@ export function parseTrailer(line: string, index: number): BMPCnab444Trailer {
 export function generate(entries: BMPCnab444Record[]): string {
   // Helper for numeric (zero-padded, right-aligned)
   const num = (val: string | number | undefined, len: number) =>
-    String(val ?? "").padStart(len, "0");
+    String(val ?? "")
+      .padStart(len, "0")
+      .slice(0, len);
   // Helper for alphanumeric (space-padded, left-aligned)
   const alpha = (val: string | undefined, len: number) =>
-    (val ?? "").toUpperCase().padEnd(len, " ");
+    (val ?? "").toUpperCase().padEnd(len, " ").slice(0, len);
 
   let fileContent = "";
 
